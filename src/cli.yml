@@ -1,0 +1,32 @@
+name: myapp
+version: "1.0"
+author: Kevin K. <kbknapp@gmail.com>
+about: Does awesome things
+args:
+    - init:
+        help: sets the directory to use
+        index: 1
+        required: false
+
+subcommands:
+    - new:
+        about: adds new notes
+        args:
+            - NAME:
+                help: adds a note with <NAME>
+                index: 1
+                required: true
+    - list:
+        about: lists existing notes
+
+    - link-fix:
+        about: fixes linking between notes
+        args:
+            - NAME:
+                help: note to fix
+                index: 1
+                required: false
+
+            - dry:
+                help: do a dry run
+                short: d
