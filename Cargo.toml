@@ -10,3 +10,5 @@ edition = "2018"
 clap = {version = "~2.27.0", features = ["yaml"]}
 log = "0.4.8"
 simple_logger = "1.6.0"
+serde = {version = "1.0.106", features = ["derive"]}
+bincode = "1.2.1"

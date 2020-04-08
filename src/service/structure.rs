@@ -1,32 +1,51 @@
 use crate::utility::filesystem;
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::env;
 
-pub fn init_structure(folder_name: &str){
-    let nota_path = Path::new(folder_name).join("nota");
-    let archive_path = nota_path.join("archive");
-    let index_path = nota_path.join("index.md");
+fn nota_dir_string() -> String {
+    // very unixy ... maybe we will need to change this later
+    match env::var("NOTA_FOLDER") {
+        Ok(val) => val.to_string(),   
+        Err(e) => {
+            let user = env::var("USER").unwrap();
+            error!("Error extracting $NOTA_FOLDER {:?}", e);
+            format!("/home/{}/Documents/nota",user).to_string()
+        }
+    }
+}
 
-    info!("init_structure/create_main_folder - {:?}", nota_path);
-    let path_str = match nota_path.as_os_str().to_str() {
-        Some(path_string) => path_string,
-        None => {panic!("There was a problem")},
-    };
-    filesystem::create_folder(path_str).unwrap();
+pub fn nota_dir_path() -> PathBuf {
+    PathBuf::from(nota_dir_string())
+}
 
-    info!("init_structure/create_archive_folder - {:?}", archive_path);
-    let archive_path_str = match  archive_path.as_os_str().to_str() {
-        Some(path_str) => path_str,
-        None => {panic!("There was a problem")},
-    };
-    filesystem::create_folder(archive_path_str).unwrap();   
+pub fn nota_index_path() -> PathBuf{
+    let mut index_path = nota_dir_path();
+    index_path.push("index");
+    index_path.set_extension("md");
+    index_path
+}
 
-    info!("init_structure/create_index_file - {:?}", index_path);
-    let index_path_str = match  index_path.as_os_str().to_str() {
-        Some(path_str) => path_str,
-        None => {panic!("There was a problem")},
-    };
-    filesystem::create_file(index_path_str).unwrap();   
+pub fn init_structure() {
+    let mut path = nota_dir_path();
 
-    
+    if path.exists() && path.is_dir() {
+        info!("init_structure/create_main_folder nota folder already exists");
+        return
+    }
+
+    info!("init_structure/create_main_folder - {:?}", path);
+    filesystem::create_folder(&path).unwrap();
+
+    path.push("archive");
+
+    info!("init_structure/create_archive_folder - {:?}", path);
+    filesystem::create_folder(&path).unwrap();   
+}
+
+pub fn add_nota(nota_uid: &str){
+    let mut new_nota_path = nota_dir_path();
+    new_nota_path.push(nota_uid);
+    new_nota_path.set_extension("md");
+    filesystem::create_file(&new_nota_path);
 }

@@ -6,14 +6,17 @@ use clap::App;
 extern crate log;
 extern crate simple_logger;
 
+#[macro_use]
+extern crate serde;
+
+extern crate bincode;
+
 
 mod application;
 mod service;
 mod utility;
 
 fn main() {
-    debug!("Log initialized");
-    // The YAML file is found relative to the current file, similar to how modules are found
     let yaml = load_yaml!("cli.yml");
     let matches = App::from_yaml(yaml).get_matches();
 
@@ -25,21 +28,18 @@ fn main() {
         5 => { println!("Log Level: Trace"); simple_logger::init_with_level(log::Level::Trace).unwrap(); },
         _ => { println!("Log Level: Info" ); simple_logger::init_with_level(log::Level::Info).unwrap(); }
     }
+    debug!("Log initialized");
+
+    debug!("Envs loaded");
 
     if let Some(matches_init) = matches.subcommand_matches("init") {
-
-        let folder = matches_init.value_of("FOLDER").unwrap_or("");
-        println!("Init nota folder in: {}", folder);
-        application::plumbing::init_nota_folder(folder);
-
+        application::plumbing::init_nota_folder();
     }
 
     if let Some(matches_new) = matches.subcommand_matches("new") {
-
-        let folder = matches_new.value_of("NAME").unwrap();
-        println!("Name for new nota: {}", folder);
+        let name = matches_new.value_of("NAME").unwrap();
+        application::plumbing::add_nota("demo")
 
     }
 
-    // Same as previous examples...
 }
