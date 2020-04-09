@@ -43,9 +43,11 @@ pub fn init_structure() {
     filesystem::create_folder(&path).unwrap();   
 }
 
-pub fn add_nota(nota_uid: &str){
+pub fn add_nota(nota_uid: &str, title: &str){
     let mut new_nota_path = nota_dir_path();
     new_nota_path.push(nota_uid);
     new_nota_path.set_extension("md");
-    filesystem::create_file(&new_nota_path);
+
+    let title = format!("#  {}", title);
+    filesystem::create_file(&new_nota_path, Some(&title));
 }

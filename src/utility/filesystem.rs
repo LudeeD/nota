@@ -8,14 +8,15 @@ pub fn create_folder(path: &PathBuf) -> Result<(),Error>{
     create_dir(path)
 }
 
-pub fn create_file(path: &PathBuf) -> Result<(),Error>{
+pub fn create_file(path: &PathBuf, content: Option<&str>) -> Result<(),Error>{
     debug!("create_file {:?}", path);
-    match File::create(path) {
-        Ok(_) => Ok(()),
-        Err(error) => Err(error)
+    let mut file = File::create(path)?;
+
+    match content {
+        Some(content) => { file.write_all(content.as_bytes())},
+        None =>  {Ok(())}
     }
 }
-
 
 pub fn read_bytes(path: & PathBuf) -> Result<Vec<u8>, Error> {
     read(path)
