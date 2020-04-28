@@ -51,9 +51,16 @@ async fn main() {
 
     let mut hb = Handlebars::new();
 
-    hb.register_template_file("title", &"./frontend/title.hbs");
+    hb.register_template_file("head", &"./frontend/templates/head.hbs")
+        .unwrap();
 
-    hb.register_template_file("template.html", &"./frontend/index.hbs")
+    hb.register_template_file("navbar", &"./frontend/templates/navbar.hbs")
+        .unwrap();
+
+    hb.register_template_file("new_nota", &"./frontend/templates/new_nota.hbs")
+        .unwrap();
+
+    hb.register_template_file("list_nota", &"./frontend/templates/list_nota.hbs")
         .unwrap();
 
     // Turn Handlebars instance into a Filter so we can combine it
@@ -71,15 +78,23 @@ async fn main() {
         .and(warp::fs::dir("./frontend/assets"));
 
     //GET /
-    let route = warp::get()
+    let new_nota_route = warp::path!("new")
         .and(warp::path::end())
         .map(|| WithTemplate {
-            name: "template.html",
+            name: "new_nota",
             value: json!({"user" : "demo"}),
         })
-        .map(handlebars);
+        .map(handlebars.clone());
 
-    let app = hello.or(assets).or(route);
+    let list_nota_route = warp::path!("notas") 
+        .and(warp::path::end())
+        .map(|| WithTemplate {
+            name: "list_nota",
+            value: json!({"notas" : {"blocks": {"uid": "1", "title":"demo demo", "timestamp" : "1234"}} }),
+        })
+        .map(handlebars.clone());
+
+    let app = warp::get().and(hello.or(assets).or(new_nota_route).or(list_nota_route));
 
     warp::serve(app).run(([127, 0, 0, 1], 3030)).await;
 }

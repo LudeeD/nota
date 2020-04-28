@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+
+{{> head}}
+
+<body>
+
+    {{> navbar isActiveList=true}}
+
+    <br>
+
+    <div class="container mx-auto">
+        <div class="row">
+            <div class="col-sm">
+                <h1 class="text-center">All Notas {{user}}!</h1>
+            </div>
+
+            <div class="col-sm">
+                <nav aria-label="Page navigation example">
+                    <ul class="pagination">
+                        <li class="page-item"><a class="page-link" href="#">Previous</a></li>
+                        <li class="page-item"><a class="page-link" href="#">1</a></li>
+                        <li class="page-item"><a class="page-link" href="#">2</a></li>
+                        <li class="page-item"><a class="page-link" href="#">3</a></li>
+                        <li class="page-item"><a class="page-link" href="#">Next</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <br>
+
+    <div class="list-group mx-auto" style="width: 75%;">
+        {{#each notas as | blocks | }}
+        <a href="/nota/{{blocks.uid}}" class="list-group-item list-group-item-action">
+            {{blocks.timestamp}} {{blocks.title}}
+        </a>
+        {{/each}}
+    </div>
+
+
+</body>
+
+</html>
