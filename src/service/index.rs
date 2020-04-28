@@ -51,7 +51,7 @@ impl NotaIndex {
     }
 
     pub fn add_new_nota(&mut self, name: &str, uid: u64) {
-        let new_entry = String::from(format!("{};{}", name, uid));
+        let new_entry = String::from(format!("{};{}", uid, name));
 
         self.lines.push(new_entry);
     }
