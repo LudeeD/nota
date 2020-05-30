@@ -56,4 +56,3 @@ impl NotaIndex {
         self.lines.push(new_entry);
     }
 }
-

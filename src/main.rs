@@ -11,6 +11,10 @@ extern crate serde;
 
 extern crate bincode;
 
+extern crate comrak;
+
+extern crate handlebars;
+
 
 mod application;
 mod service;
@@ -36,10 +40,23 @@ fn main() {
         application::plumbing::init_nota_folder();
     }
 
+    if let Some(matches_index) = matches.subcommand_matches("index") {
+        if matches_index.is_present("print") {
+            application::plumbing::index_print();
+        }
+
+        if matches_index.is_present("clean") {
+            application::plumbing::index_clean();
+        }
+
+        info!("Done !");
+    }
+
     if let Some(matches_new) = matches.subcommand_matches("new") {
         let name = matches_new.value_of("NAME").unwrap();
-        application::plumbing::add_nota("demo")
-
+        application::plumbing::add_nota(name)
     }
+
+    application::plumbing::book_generate();
 
 }

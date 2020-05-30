@@ -26,6 +26,19 @@ pub fn nota_index_path() -> PathBuf{
     index_path
 }
 
+pub fn nota_configs_path() -> PathBuf{
+    let mut configs_path = nota_dir_path();
+    configs_path.push("configs");
+    configs_path.set_extension("toml");
+    configs_path
+}
+
+pub fn nota_book_folder_path() -> PathBuf{
+    let mut book_folder_path = nota_dir_path();
+    book_folder_path.push("book");
+    book_folder_path
+}
+
 pub fn init_structure() {
     let mut path = nota_dir_path();
 
@@ -43,11 +56,13 @@ pub fn init_structure() {
     filesystem::create_folder(&path).unwrap();   
 }
 
-pub fn add_nota(nota_uid: &str, title: &str){
+pub fn add_nota(nota_uid: &str, title: &str) -> PathBuf{
     let mut new_nota_path = nota_dir_path();
     new_nota_path.push(nota_uid);
     new_nota_path.set_extension("md");
 
     let title = format!("#  {}", title);
     filesystem::create_file(&new_nota_path, Some(&title));
+
+    return new_nota_path;
 }

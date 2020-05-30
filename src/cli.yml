@@ -9,6 +9,18 @@ args:
       help: sets the verbosity of the logger Error(1)-Warn-Info-Debug-Trace(5)
 
 subcommands:
+    - index:
+        about: index operations
+        args:
+            - print:
+                help: prints index file to the screen
+                short: p
+                long: print
+            - clean:
+                help: cleans index file
+                short: c
+                long: clean
+
     - init:
         about: init nota folder
         args:
@@ -21,7 +33,7 @@ subcommands:
         about: adds new notes
         args:
             - NAME:
-                help: adds a note with <NAME>
+                help: adds a nota with <NAME>
                 index: 1
                 required: true
     - list:
