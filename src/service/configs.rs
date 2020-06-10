@@ -1,7 +1,6 @@
 use crate::utility::filesystem;
 
-use std::path::{Path, PathBuf};
-use std::env;
+use std::path::{PathBuf};
 
 use serde::Deserialize;
 
@@ -11,5 +10,5 @@ struct Configs{
 }
 
 pub fn init_config_file(path: &PathBuf){
-    filesystem::create_file(path, None);
+    filesystem::create_file(path, None).expect("Something went Wrong");
 }

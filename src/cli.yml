@@ -39,6 +39,9 @@ subcommands:
     - list:
         about: lists existing notes
 
+    - book:
+        about : book creation related operation
+
     - link-fix:
         about: fixes linking between notes
         args:

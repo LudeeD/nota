@@ -4,21 +4,8 @@ use clap::App;
 
 #[macro_use]
 extern crate log;
+
 extern crate simple_logger;
-
-#[macro_use]
-extern crate serde;
-
-extern crate bincode;
-
-extern crate comrak;
-
-extern crate handlebars;
-
-
-mod application;
-mod service;
-mod utility;
 
 fn main() {
     let yaml = load_yaml!("cli.yml");
@@ -36,17 +23,17 @@ fn main() {
 
     debug!("Envs loaded");
 
-    if let Some(matches_init) = matches.subcommand_matches("init") {
-        application::plumbing::init_nota_folder();
+    if let Some(_matches_init) = matches.subcommand_matches("init") {
+        nota::init_nota_folder();
     }
 
     if let Some(matches_index) = matches.subcommand_matches("index") {
         if matches_index.is_present("print") {
-            application::plumbing::index_print();
+            nota::index_print();
         }
 
         if matches_index.is_present("clean") {
-            application::plumbing::index_clean();
+            nota::index_clean();
         }
 
         info!("Done !");
@@ -54,9 +41,11 @@ fn main() {
 
     if let Some(matches_new) = matches.subcommand_matches("new") {
         let name = matches_new.value_of("NAME").unwrap();
-        application::plumbing::add_nota(name)
+        nota::add_nota(name)
     }
 
-    application::plumbing::book_generate();
+    if let Some(_matches_book) = matches.subcommand_matches("book") {
+        nota::book_generate();
+    }
 
 }

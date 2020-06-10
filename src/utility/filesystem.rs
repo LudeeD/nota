@@ -1,7 +1,7 @@
 use std::path::{PathBuf};
 use std::fs::{read, File, create_dir};
 use std::io::prelude::*;
-use std::io::{Error, BufReader, BufRead};
+use std::io::{Error};
 
 pub fn create_folder(path: &PathBuf) -> Result<(),Error>{
     debug!("create_folder {:?}", path);

@@ -1,48 +1,44 @@
-use std::path::Path;
 use std::fs;
-use std::ffi::{OsStr};
-use std::collections::BTreeMap;
 
+use std::path::PathBuf;
 
-use comrak::{markdown_to_html, ComrakOptions};
+use std::io::{Error, Write};
 
-use handlebars::{
-    to_json, Context, Handlebars, Helper, JsonRender, Output, RenderContext, RenderError,
-};
+use comrak::{parse_document, format_html, Arena, ComrakOptions};
 
-pub fn generate() {
-    let mut data = BTreeMap::new();
-    data.insert("title".to_string(), "QUE MERRRDA".to_string());
+use walkdir::WalkDir;
 
-    let mut handlebars = Handlebars::new();
-    let mut source_template = fs::File::open("/home/ludee/Documents/nota/book/templates/nota.hbs").unwrap();
-    let mut output_file = fs::File::create("/home/ludee/Documents/nota/book/demo.html").unwrap();
-    handlebars.render_template_source_to_write(&mut source_template, &data, &mut output_file).unwrap();
+pub fn generate(nota_path: &PathBuf, book_path: &PathBuf) -> Result<(), Error>{
 
-    //let mut source_template = fs::File::open(&"/home/ludee/Documents/nota/book/templates/nota.hbs").expect("No template File");
+    let arena = Arena::new();
 
-    //let nota_dir = "/home/ludee/Documents/nota";
+    let (mut input, mut root, mut output_file);
+    let mut html = vec![];
 
-    // https://rust-lang-nursery.github.io/rust-cookbook/file/dir.html
-    // see also for metadata like modified time
-    //for entry in fs::read_dir(nota_dir).expect("No nota dir!") {
-    //    let entry = entry.unwrap();
-    //    let path = entry.path();
-    //    let md_extension = OsStr::new("md");
+    for entry in WalkDir::new(nota_path).follow_links(false).into_iter().filter_map(|e| e.ok()) {
 
-    //    match path.extension() {
-    //        Some( ext ) => {
-    //                if ext == "md" {
-    //                    info!("{:?}", path);
-    //                    //let string_html = markdown_to_html(&fs::read_to_string(path).expect("Bad nota"),  &ComrakOptions::default());
-    //                    //handlebars.register_template_string("page", string_html).is_ok();
-    //                    info!("Should be creating things");
-    //                } 
-    //        },
-    //        _ => {}
-    //    }
+        let fname = String::from(entry.file_name().to_string_lossy());
 
-    //}
+        if !(fname.ends_with(".md")) {
+            continue;
+        }
+        
+        input = std::fs::read_to_string(entry.into_path()).unwrap();
 
+        root = parse_document(&arena, &input, &ComrakOptions::default());
+
+        html.clear(); 
+
+        format_html(root, &ComrakOptions::default(), &mut html).unwrap();
+            
+        let mut html_path = book_path.clone();
+        html_path.push(fname);
+        html_path.set_extension("html");
+
+        output_file = fs::File::create(html_path).unwrap();
+
+        output_file.write_all(&html)?;
+    }
     
+    return Ok(());
 }

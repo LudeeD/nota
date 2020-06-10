@@ -1,18 +1,11 @@
 use crate::utility::filesystem;
 
-use std::path::{Path, PathBuf};
+use std::path::{ PathBuf};
 use std::env;
 
 fn nota_dir_string() -> String {
-    // very unixy ... maybe we will need to change this later
-    match env::var("NOTA_FOLDER") {
-        Ok(val) => val.to_string(),   
-        Err(e) => {
-            let user = env::var("USER").unwrap();
-            error!("Error extracting $NOTA_FOLDER {:?}", e);
-            format!("/home/{}/Documents/nota",user).to_string()
-        }
-    }
+    debug!("Fetching NOTA_FOLDER env");
+    env::var("NOTA_FOLDER").expect("Error getting NOTA_FOLDER env")
 }
 
 pub fn nota_dir_path() -> PathBuf {

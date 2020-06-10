@@ -32,12 +32,12 @@ impl NotaIndex {
     pub fn save(&self, index_file: &PathBuf) {
         let encoded : Vec<u8> = match bincode::serialize(self) {
             Ok(bytes) => bytes,
-            Err(error) => panic!(format!("save_NotaIndex error generating bincode"))
+            Err(_error) => panic!(format!("save_NotaIndex error generating bincode"))
         };
 
         match filesystem::write_bytes(index_file, &encoded) {
             Ok(()) => (),
-            Err(error) => panic!(format!("save_NotaIndex error saving bincode"))
+            Err(_error) => panic!(format!("save_NotaIndex error saving bincode"))
         }
     }
 
