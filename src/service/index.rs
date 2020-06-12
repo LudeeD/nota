@@ -1,9 +1,10 @@
 use serde::{Serialize, Deserialize};
 use bincode;
 
-use crate::utility::filesystem;
 
-use std::path::PathBuf;
+use crate::utility::filesystem;
+use crate::utility::error::Upsie;
+use crate::service::structure;
 
 #[derive(Serialize, Deserialize, PartialEq, Debug)]
 pub struct NotaIndex {
@@ -13,31 +14,36 @@ pub struct NotaIndex {
 
 impl NotaIndex {
 
-    pub fn init(index_path: &PathBuf) {
+    pub fn init() -> Result<(), Upsie> {
         let index = NotaIndex{uid: 0, lines: vec![]};
-        index.save(index_path)
+        index.save()?;
+        Ok(())
     }
 
-    pub fn new(index_file: &PathBuf) -> NotaIndex {
-        let bytes = match filesystem::read_bytes(index_file) {
-            Ok(bytes) => bytes,
-            Err(error) => panic!(format!("new_NotaIndex error reading bytes from file {}", error))        
-        };
+    pub fn new() -> Result<NotaIndex, Upsie> {
+
+        let index_path = structure::index_path()?;
+
+        let bytes = filesystem::read_bytes(&index_path)?;
+
         match bincode::deserialize(&bytes) {
-            Ok(index) => index,
-            Err(error) => panic!(format!("new_NotaIndex error creating index bytes {}", error))
+            Ok(index) => Ok(index),
+            Err(_error) => Err(Upsie::new("Error Occurred While Deserializing")),
         }
     }
 
-    pub fn save(&self, index_file: &PathBuf) {
+    pub fn save(&self) -> Result<(),Upsie> {
+
+        let index_path = structure::index_path()?;
+        
         let encoded : Vec<u8> = match bincode::serialize(self) {
             Ok(bytes) => bytes,
-            Err(_error) => panic!(format!("save_NotaIndex error generating bincode"))
+            Err(_error) => return Err(Upsie::new("Error Occurred generating bincode"))
         };
 
-        match filesystem::write_bytes(index_file, &encoded) {
-            Ok(()) => (),
-            Err(_error) => panic!(format!("save_NotaIndex error saving bincode"))
+        match filesystem::write_bytes(&index_path, &encoded) {
+            Ok(()) => Ok(()),
+            Err(_error) => Err(Upsie::new("Error Occurred saving bincode"))
         }
     }
 

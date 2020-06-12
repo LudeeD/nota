@@ -1,28 +1,31 @@
-use std::path::{PathBuf};
-use std::fs::{read, File, create_dir};
+use std::fs::{File, read, create_dir};
 use std::io::prelude::*;
-use std::io::{Error};
 
-pub fn create_folder(path: &PathBuf) -> Result<(),Error>{
+use crate::utility::error::Upsie;
+
+pub fn create_folder(path: &str) -> Result<(),Upsie>{
     debug!("create_folder {:?}", path);
-    create_dir(path)
+    create_dir(path)?;
+    Ok(())
 }
 
-pub fn create_file(path: &PathBuf, content: Option<&str>) -> Result<(),Error>{
+pub fn create_file(path: &str, content: Option<&str>) -> Result<(),Upsie>{
     debug!("create_file {:?}", path);
     let mut file = File::create(path)?;
-
     match content {
-        Some(content) => { file.write_all(content.as_bytes())},
-        None =>  {Ok(())}
-    }
+        Some(content) => file.write_all(content.as_bytes())? ,
+        None =>  {}
+    };
+    Ok(())
 }
 
-pub fn read_bytes(path: & PathBuf) -> Result<Vec<u8>, Error> {
-    read(path)
+pub fn read_bytes(path: &str) -> Result<Vec<u8>, Upsie> {
+    debug!("read bytes {:?}", path);
+    Ok(read(path)?)
 }
 
-pub fn write_bytes(path: & PathBuf, bytes: &Vec<u8>) -> Result<(), Error>{
-    let mut f = File::create(path).expect("Demo");
-    f.write_all(bytes)
+pub fn write_bytes(path: &str, bytes: &Vec<u8>) -> Result<(), Upsie>{
+    debug!("write bytes {:?}", path);
+    File::create(path)?.write_all(bytes)?;
+    Ok(())
 }

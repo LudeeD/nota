@@ -15,61 +15,47 @@ extern crate walkdir;
 mod service;
 mod utility;
 
-
 use crate::service::structure;
 use crate::service::index;
 use crate::service::configs;
 use crate::service::book;
 
-use std::io::Write;
+use crate::utility::error::Upsie;
 
-use std::{
-    fs::File,
-    path::PathBuf,
-};
-
-pub fn get_nota_folder() -> PathBuf {
-    structure::nota_dir_path()
-}
-
-pub fn get_index_path() -> PathBuf {
-    structure::nota_index_path()
-}
-
-pub fn get_configs_path() -> PathBuf {
-    structure::nota_configs_path()
-}
-
-pub fn get_book_folder() -> PathBuf {
-    structure::nota_book_folder_path()
-}
+use std::{ fs::File, io::Write };
 
 pub fn index_print() {
-    let index = index::NotaIndex::new(&get_index_path());
+    let index = index::NotaIndex::new();
     println!("{:?}", index);
 }
 
-pub fn index_clean() {
-    index::NotaIndex::init(&get_index_path());
-    info!("Index was cleared")
+pub fn index_clean()  -> Result<(), Upsie>{
+    index::NotaIndex::init()?;
+    info!("Index was cleared");
+    Ok(())
 }
 
-pub fn book_generate() {
-    book::generate(&get_nota_folder(), &get_book_folder());
+pub fn book_generate()  -> Result<(), Upsie>{
+    book::generate()?;
+    Ok(())
 }
 
-pub fn init_nota_folder() {
+pub fn init_nota_folder() -> Result<(), Upsie>{
     debug!("Init Structure");
-    structure::init_structure();
-    index::NotaIndex::init(&get_index_path());
-    configs::init_config_file(&get_configs_path());
+    structure::init_structure()?;
+    index::NotaIndex::init()?;
+    configs::init_config_file()?;
+    Ok(())
 }
 
-pub fn add_nota(nota_name: &str) {
-    info!("add_nota {}", nota_name);
-    let index_path = get_index_path();
+pub fn init_envs() {
+    structure::set_envs();
+}
 
-    let mut index = index::NotaIndex::new(&index_path);
+pub fn add_nota(nota_name: &str) -> Result<(),Upsie> {
+    info!("add_nota {}", nota_name);
+
+    let mut index = index::NotaIndex::new()?;
 
     let next_uid = index.get_next_uid();
 
@@ -77,15 +63,15 @@ pub fn add_nota(nota_name: &str) {
     index.add_new_nota(nota_name, next_uid);
 
     // create file <uid>.md 
-    let new_nota_path = structure::add_nota(&next_uid.to_string(), nota_name);
+    let new_nota_path = structure::add_nota(&next_uid.to_string(), nota_name)?;
 
     //let default_text = format!("# {}", nota_name);
 
-    let mut new_file = File::open(new_nota_path).expect("damn");
+    let mut new_file = File::open(new_nota_path)?;
 
     write!(new_file,"# {}", nota_name).expect("damn");
 
-    index.save(&index_path);
+    index.save()
 
     // opens the editor
     //let editor = var("EDITOR").unwrap();

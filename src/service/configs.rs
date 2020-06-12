@@ -1,6 +1,5 @@
-use crate::utility::filesystem;
-
-use std::path::{PathBuf};
+use crate::utility::{error::Upsie, filesystem};
+use crate::service::structure;
 
 use serde::Deserialize;
 
@@ -9,6 +8,9 @@ struct Configs{
     editor: Option<String>,
 }
 
-pub fn init_config_file(path: &PathBuf){
-    filesystem::create_file(path, None).expect("Something went Wrong");
+pub fn init_config_file() -> Result<(), Upsie>{
+
+    let config_path = structure::configs_path()?;
+
+    filesystem::create_file(&config_path, None)
 }

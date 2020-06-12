@@ -21,10 +21,15 @@ fn main() {
     }
     debug!("Log initialized");
 
+
+    nota::init_envs();
     debug!("Envs loaded");
 
     if let Some(_matches_init) = matches.subcommand_matches("init") {
-        nota::init_nota_folder();
+        match nota::init_nota_folder() {
+            Ok(()) => info!("NOTA initialized"),
+            Err(err) => error!("{}", err)
+        };
     }
 
     if let Some(matches_index) = matches.subcommand_matches("index") {
@@ -33,7 +38,10 @@ fn main() {
         }
 
         if matches_index.is_present("clean") {
-            nota::index_clean();
+            match nota::index_clean(){
+                Ok(()) => info!("NOTA Index Cleaned"),
+                Err(err) => error!("{}", err)
+            }
         }
 
         info!("Done !");
@@ -41,11 +49,17 @@ fn main() {
 
     if let Some(matches_new) = matches.subcommand_matches("new") {
         let name = matches_new.value_of("NAME").unwrap();
-        nota::add_nota(name)
+        match nota::add_nota(name){
+            Ok(())  => info!("Nota {} created", name),
+            Err(err)=> error!("{}", err) 
+        }
     }
 
     if let Some(_matches_book) = matches.subcommand_matches("book") {
-        nota::book_generate();
+        match nota::book_generate(){
+            Ok(())  => info!("NOTA Book created"),
+            Err(err)=> error!("{}", err) 
+        }
     }
 
 }
