@@ -13,6 +13,14 @@ web apps to use to do the things I wanted.
 
 Simple text files, with a litle bit of tooling around for the extra producivity
 
+**Very early state in the project, not ready in any way shape or form xD**
+
+# Features
+
+- Basic note management (create, update list, search)
+- Linking and Reverse Linking of notes
+- Export to other formats
+
 # Install 
 
 - Download the binary
@@ -31,23 +39,23 @@ Simple text files, with a litle bit of tooling around for the extra producivity
     - list available notas
     - Status: _TODO_
 
-- nota new <NAME>
-    - <NAME> is optional
-    - if <NAME> is provided use it to create nota 
+- nota new _NAME_
+    - _NAME_ is optional
+    - if _NAME_ is provided use it to create nota 
     - if not create a new one under Daily/<CurrentDay>
     - Status: _Buggy_
 
-- nota add <PATH>
-    - <PATH> is required
+- nota add _PATH_
+    - _PATH_ is required
     - adds an existing markdown file to the nota folder 
     - storing their metadata in the nota index
     - Status: _Buggy_
 
-- nota update <NAME>
+- nota update _NAME_
     - updates the NOTA by adding their metadata to the index
     - Status: _TODO_
 
-- nota export <NAME>
-    - <NAME> is optional
+- nota export _NAME_
+    - _NAME_ is optional
     - exports the nota into the specific format, right now HTML
     - Status: _Buggy_
