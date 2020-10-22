@@ -20,3 +20,34 @@ Simple text files, with a litle bit of tooling around for the extra producivity
 - Create a folder for your notes (optional)
 - Add a Environment Variable NOTA_FOLDER that points to the folder
 - You are good to go !
+
+# API
+
+- nota init
+    - initializes the NOTA folders
+    - Status: _Buggy_
+
+- nota list
+    - list available notas
+    - Status: _TODO_
+
+- nota new <NAME>
+    - <NAME> is optional
+    - if <NAME> is provided use it to create nota 
+    - if not create a new one under Daily/<CurrentDay>
+    - Status: _Buggy_
+
+- nota add <PATH>
+    - <PATH> is required
+    - adds an existing markdown file to the nota folder 
+    - storing their metadata in the nota index
+    - Status: _Buggy_
+
+- nota update <NAME>
+    - updates the NOTA by adding their metadata to the index
+    - Status: _TODO_
+
+- nota export <NAME>
+    - <NAME> is optional
+    - exports the nota into the specific format, right now HTML
+    - Status: _Buggy_

@@ -1,7 +1,7 @@
-name: myapp
-version: "1.0"
-author: Kevin K. <kbknapp@gmail.com>
-about: Does awesome things
+name: NOTA
+version: "0.1"
+author: Luís Silva <luiscomsnofim@gmail.com>
+about: note and life management
 args:
   - verbose:
       short: v
@@ -9,17 +9,6 @@ args:
       help: sets the verbosity of the logger Error(1)-Warn-Info-Debug-Trace(5)
 
 subcommands:
-    - index:
-        about: index operations
-        args:
-            - print:
-                help: prints index file to the screen
-                short: p
-                long: print
-            - clean:
-                help: cleans index file
-                short: c
-                long: clean
 
     - init:
         about: init nota folder
@@ -28,28 +17,32 @@ subcommands:
                 help: creates the nota folders
                 index: 1
                 required: false
- 
+
     - new:
-        about: adds new notes
+        about: creates a new Nota 
         args:
             - NAME:
-                help: adds a nota with <NAME>
+                help: creates a NOTA with <NAME>
                 index: 1
                 required: true
-    - list:
-        about: lists existing notes
 
-    - book:
-        about : book creation related operation
-
-    - link-fix:
-        about: fixes linking between notes
+    - add:
+        about: add file to Nota 
         args:
-            - NAME:
-                help: note to fix
+            - PATH:
+                help: adds file in <PATH>
+                index: 1
+                required: true
+
+    - list:
+        about: list existing NOTA
+    
+    - update:
+        about : updates NOTA in the system 
+        args:
+            - FILE:
+                help: updates <FILE> in NOTA
                 index: 1
                 required: false
-
-            - dry:
-                help: do a dry run
-                short: d
+    - export:
+        about : book creation related operation
