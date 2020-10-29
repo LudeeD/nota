@@ -10,3 +10,8 @@ pub fn init() -> Result<()> {
 
     Ok(())
 }
+
+pub fn add() -> Result<()> {
+
+    Ok(())
+}

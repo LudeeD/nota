@@ -1,81 +1,122 @@
 use serde::{Serialize, Deserialize};
+use std::collections::HashMap;
 use bincode;
+use std::path::PathBuf;
 use anyhow::Result;
 
 use std::convert::TryInto;
 
 use crate::util::{envs, filesystem};
 
-pub fn init() -> Result<()> {
-    let clean_index = NotaList{entries: vec![]};
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct IndexEntry {
+    pub uid: u64,
+    pub original_title: Option<String>,
+    pub file_path: PathBuf,
+    pub contents_digest: String,
+    pub replaced_by: Option<u64>
+}
 
-    clean_index.save();
+pub fn init() -> Result<Vec<IndexEntry>> {
+    debug!("Initializing Index");
+
+    let clean_index = vec![];
+
+    save(&clean_index);
+
+    Ok(clean_index)
+}
+
+pub fn load() -> Result<Vec<IndexEntry>> {
+
+    debug!("Loading Index to memory");
+
+    let index_path = envs::index_path();
+
+    let bytes = filesystem::read_bytes(&index_path)?;
+
+    match bincode::deserialize(&bytes) {
+        Ok(index) => Ok(index),
+        Err(_error) => Err(anyhow!("Error occurred while deserializing")),
+    }
+}
+
+pub fn save(index_to_save: &Vec<IndexEntry>) -> Result<()> {
+    debug!("Saving Index");
+
+    let index_path = envs::index_path();
+
+    let encoded : Vec<u8> = match bincode::serialize(index_to_save) {
+        Ok(bytes) => bytes,
+        Err(_error) => return Err(anyhow!("Error occurred generating bincode"))
+    };
+
+    match filesystem::write_bytes(&index_path, &encoded) {
+        Ok(()) => Ok(()),
+        Err(_error) => Err(anyhow!("Error Occurred saving bincode"))
+    }
+}
+
+pub fn list(index_to_list: &Vec<IndexEntry>) -> Result<()> {
+
+    println!("LIST INDEX: ");
+
+    for entry in index_to_list {
+        println!("=> {:?}", entry);
+    }
 
     Ok(())
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
-pub struct ListEntry {
-    uid: u64,
-    title: String,
-    file_path: String,
-    contents_digest: String
+pub fn add_new_nota(index: &mut Vec<IndexEntry>, mut entry: IndexEntry) -> Result<()> {
+
+    let new_uid = index.len().try_into().unwrap();
+
+    entry.uid = new_uid;
+
+    index.push(entry);
+
+    Ok(())
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
-pub struct NotaList {
-    entries: Vec<ListEntry>,
+pub fn search_for_uid(index: & Vec<IndexEntry>, uid_to_search: u64) -> Result<IndexEntry> {
+
+    let mut entry : Option<IndexEntry> = None;
+
+    for elem in index.iter() {
+
+        if elem.uid == uid_to_search {
+
+            entry = Some(elem.clone());
+
+        }
+
+    }
+
+    match entry {
+        Some(e) => Ok(e),
+        None => Err(anyhow!("No index entry found"))
+    }
+
 }
 
-impl NotaList {
+pub fn search_for_path(index: & Vec<IndexEntry>, path_to_search: PathBuf) -> Result<IndexEntry> {
 
-    pub fn new() -> Result<NotaList> {
+    let mut entry : Option<IndexEntry> = None;
 
-        let list_path = envs::list_path();
+    for elem in index.iter() {
 
-        debug!("list path: {}", list_path);
+        if elem.file_path == path_to_search {
 
-        let bytes = filesystem::read_bytes(&list_path)?;
+            entry = Some(elem.clone());
 
-        match bincode::deserialize(&bytes) {
-            Ok(index) => Ok(index),
-            Err(_error) => Err(anyhow!("Error occurred while deserializing")),
         }
-    }
-
-    pub fn save(&self) -> Result<()> {
-
-        let list_path = envs::list_path();
-        
-        debug!("list path: {}", list_path);
-
-        let encoded : Vec<u8> = match bincode::serialize(self) {
-            Ok(bytes) => bytes,
-            Err(_error) => return Err(anyhow!("Error occurred generating bincode"))
-        };
-
-        match filesystem::write_bytes(&list_path, &encoded) {
-            Ok(()) => Ok(()),
-            Err(_error) => Err(anyhow!("Error Occurred saving bincode"))
-        }
-    }
-
-    pub fn get_next_uid(&mut self) -> Result<u64> {
-        let number_of_entries : u64 = (self.entries.len() + 1).try_into()?;
-        Ok(number_of_entries)
-    }
-
-    pub fn add_new_nota(&mut self, title : Option<String>, file_path: String, contents_digest: String) -> Result<()> {
-
-        let uid = self.get_next_uid()?;
-
-        debug!("New entry {:?} {:?} {:?} {:?}", uid, title, file_path, contents_digest);
-
-        let title = title.expect("TODO remove expect");
-
-        let entry = ListEntry{uid, title, file_path, contents_digest};
-
-        Ok(())
 
     }
+
+    match entry {
+        Some(e) => Ok(e),
+        None => Err(anyhow!("No index entry found"))
+    }
+
 }

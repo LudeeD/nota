@@ -22,14 +22,8 @@ mod exporter;
 //mod error;
 
 //use error::Upsie;
-use std::{ fs::File, io::Read, io::Write };
 use std::path::{PathBuf};
-
-//use database::IndexEntry;
-//use chrono::prelude::*;
-
-//pub const REVERSE_LINKS_HEADING_LEVEL : &str = "###";
-//pub const REVERSE_LINKS_TEXT : &str = "Reverse Links";
+use std::fs;
 
 pub fn init_envs() {
     util::envs::init();
@@ -97,17 +91,35 @@ pub fn command_new(new_nota_name: Option<&str>) {
 }
 
 /// move file to the NOTA location
-pub fn command_add(mut in_file: File) {
+pub fn command_add(in_file: PathBuf) {
 
-    //let info = parser::parse(in_file);
+    let file_name = in_file.file_name().unwrap();
 
-    //let info = info.as_ref();
+    let nota_folder = util::envs::main_folder();
 
-    //debug!("Title: {}", info.title());
+    let mut new_file = PathBuf::from(nota_folder);
 
-    //info.refs().into_iter().for_each(|uid| {
-    //    debug!("Links to: {}", uid);
-    //});
+    new_file.push(file_name);
+
+    fs::copy(&in_file, &new_file).expect("TODO remove expects");
+
+    let info = parser::parse(&in_file).unwrap();
+
+    let info = info.as_ref();
+
+    let mut index = index::list::load().expect("TODO remove expects");
+
+    let index_entry = index::list::IndexEntry{
+        uid: 0,
+        original_title: Some(String::from(&info.title)),
+        file_path: new_file,
+        contents_digest: String::from(&info.contents_digest),
+        replaced_by: None
+    };
+
+    index::list::add_new_nota(&mut index, index_entry).expect("TODO remove expects");
+
+    index::list::save(&index);
 
 }
 
@@ -116,7 +128,9 @@ pub fn command_update() {
 }
 
 pub fn command_list() {
-    panic!("Not Implemented")
+    let index = index::list::load().expect("TODO remove expect");
+
+    index::list::list(&index);
 }
 
 pub fn command_export() {

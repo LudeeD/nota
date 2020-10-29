@@ -12,6 +12,7 @@ use std::fs;
 use std::io::Write;
 use std::fs::File;
 
+use walkdir::WalkDir;
 //
 //use std::path::{ PathBuf};
 //
@@ -75,25 +76,37 @@ pub fn export(file_path: Option<PathBuf>) -> Result<()> {
     let mut handlebars = Handlebars::new();
 
     handlebars.register_template_string("t1", templates::skeleton);
-    //match file_path {
-    //    Some(f) => export_single_file(f),
-    //    None => export_all_folder() 
-    //}
 
-    let mut a = PathBuf::from("C:\\Users\\Luís Silva\\Desktop\\NOTA\\1.md");
+    match file_path {
+        Some(f) => export_single_file(f, &handlebars),
+        None => export_all_folder(&handlebars) 
+    }
 
-    export_single_file(a, handlebars)
+    // let mut a = PathBuf::from("C:\\Users\\Luís Silva\\Desktop\\NOTA\\1.md");
+
+    // export_single_file(a, handlebars)
 }
 
-fn export_all_folder() -> Result<()> {
+fn export_all_folder( handlebars: & Handlebars ) -> Result<()> {
     debug!("exporting all folder");
 
-    Ok(())
+    let nota_path = util::envs::main_folder();
 
+    for entry in WalkDir::new(nota_path).follow_links(false).into_iter().filter_map(|e| e.ok()) {
+        let fname = String::from(entry.file_name().to_string_lossy());
+ 
+         if !(fname.ends_with(".md")) {
+             continue;
+         }
+
+         export_single_file(entry.into_path(), handlebars);
+    }
+
+    Ok(())
 }
 
-fn export_single_file(mut file_path: PathBuf, handlebars: Handlebars) -> Result<()> {
-    debug!("exporting single file");
+fn export_single_file(mut file_path: PathBuf, handlebars: & Handlebars) -> Result<()> {
+    debug!("exporting file {:?}", file_path);
 
     let mut data = BTreeMap::new();
 
@@ -118,7 +131,7 @@ fn export_single_file(mut file_path: PathBuf, handlebars: Handlebars) -> Result<
 
     let mut output_file = File::create(out_file).unwrap();
 
-    output_file.write_all(handlebars.render("t1", &data).unwrap().as_bytes());
+    output_file.write_all(handlebars.render("t1", &data).unwrap().as_bytes()).expect("TODO remove expects");
 
     Ok(())
 }

@@ -7,9 +7,8 @@ extern crate log;
 
 extern crate simple_logger;
 
-use std::{ fs::File, io::Read, io::Write };
 
-use std::fs::OpenOptions;
+use std::path::{PathBuf};
 
 fn main() {
     let yaml = load_yaml!("cli.yml");
@@ -40,7 +39,7 @@ fn main() {
 
     if let Some(matches_add) = matches.subcommand_matches("add") {
         let file = matches_add.value_of("PATH").unwrap();
-        let mut file =  OpenOptions::new().read(true).write(true).create(true).open(file).expect("Hum...");
+        let file = PathBuf::from(file);
         nota::command_add(file); 
     }
 
