@@ -20,11 +20,14 @@ pub struct IndexEntry {
 pub fn init() -> Result<Vec<IndexEntry>> {
     debug!("Initializing Index");
 
-    let clean_index = vec![];
-
-    save(&clean_index);
-
-    Ok(clean_index)
+    match load() {
+        Ok(index) => Ok(index), 
+        Err(_) => {
+            let clean_index = vec![];
+            save(&clean_index)?;
+            Ok(clean_index)
+        }
+    }
 }
 
 pub fn load() -> Result<Vec<IndexEntry>> {

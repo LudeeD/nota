@@ -33,29 +33,47 @@ pub fn init_envs() {
 /// the command will initialize a NOTA folder in the folder defined with the environment variable NOTA_FOLDER
 pub fn command_init() {
 
-    // Initializes NOTA Folder
+    // Create NOTA main Folder
     let path = util::envs::main_folder();
-    let mut path = PathBuf::from(&path);
+    let path = PathBuf::from(&path);
 
     if path.exists() && path.is_dir() {
-        info!("nota folder already exists");
-        return 
+        info!("Main NOTA folder already exists");
+    } else {
+        if let Some(path) = path.to_str() {
+            info!("Creating main NOTA folder in - {:?}", path);
+            util::filesystem::create_folder(path).expect("This should not fail :(")
+        };
     }
 
-    info!("create main folder in - {:?}", path);
-    if let Some(path) = path.to_str(){
-        util::filesystem::create_folder(path).expect("Hum...");
-    };
+    // Create NOTA magic folder (.nota)
+    let path = util::envs::nota_folder();
+    let path = PathBuf::from(&path);
+
+    if path.exists() && path.is_dir() {
+        info!("Magic NOTA folder already exists");
+    } else {
+        if let Some(path) = path.to_str() {
+            info!("Creating Magic NOTA folder in - {:?}", path);
+            util::filesystem::create_folder(path).expect("This should not fail :(")
+        };
+    }
 
     // Creates a config file
-    configs::init();
+    match configs::init() {
+        Ok(_) => info!("Configurations ready!"),
+        Err(e) => error!("Configurations not ready {}", e)
+    }
 
-    // TODO maybe links should not be the one responsible for creating the .nota folder
-    info!("create links folder in");
-    links::init();
+    match links::init() {
+        Ok(_) => info!("Links ready!"),
+        Err(e) => error!("Links not ready {}", e)
+    }
 
-    info!("create index list file");
-    index::list::init();
+    match index::list::init() {
+        Ok(_) => info!("Index List ready!"),
+        Err(e) => error!("Index List not ready {}", e)
+    }
 }
 
 pub fn command_new(new_nota_name: Option<&str>) {

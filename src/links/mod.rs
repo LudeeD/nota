@@ -4,9 +4,9 @@ use crate::util;
 
 pub fn init() -> Result<()> {
 
-    let links_path = util::envs::links_folder();
+    //let links_path = util::envs::links_folder();
 
-    util::filesystem::create_folder(&links_path);
+    //util::filesystem::create_folder(&links_path);
 
     Ok(())
 }
