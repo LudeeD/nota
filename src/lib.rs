@@ -24,6 +24,9 @@ mod exporter;
 //use error::Upsie;
 use std::path::{PathBuf};
 use std::fs;
+use std::fs::File;
+use std::io::{BufReader, Read, Write};
+use data_encoding::HEXUPPER;
 
 pub fn init_envs() {
     util::envs::init();
@@ -108,24 +111,30 @@ pub fn command_new(new_nota_name: Option<&str>) {
 
 }
 
-/// move file to the NOTA location
-pub fn command_add(in_file: PathBuf) {
+fn add_nota(in_file: PathBuf) {
 
-    let file_name = in_file.file_name().unwrap();
+    let mut index = index::list::load().expect("TODO remove expects | load index");
+
+    let input = File::open(&in_file).expect("TODO remove expects | open file input");
+    let reader = BufReader::new(input);
+    let digest = util::filesystem::sha256_digest(reader).expect("TODO remove expects | create digest");
+    let hex_digest = &HEXUPPER.encode(digest.as_ref())[..4];
 
     let nota_folder = util::envs::main_folder();
 
     let mut new_file = PathBuf::from(nota_folder);
 
-    new_file.push(file_name);
+    new_file.push(hex_digest);
+    new_file.set_extension("md");
 
-    fs::copy(&in_file, &new_file).expect("TODO remove expects");
+    // TODO check if the file already exists
+    File::create(&new_file).expect("TODO remove expects | create file");
+
+    fs::copy(&in_file, &new_file).expect("TODO remove expects | copy file");
 
     let info = parser::parse(&in_file).unwrap();
 
     let info = info.as_ref();
-
-    let mut index = index::list::load().expect("TODO remove expects");
 
     let index_entry = index::list::IndexEntry{
         uid: 0,
@@ -138,7 +147,33 @@ pub fn command_add(in_file: PathBuf) {
     index::list::add_new_nota(&mut index, index_entry).expect("TODO remove expects");
 
     index::list::save(&index);
+}
 
+/// move file to the NOTA location
+pub fn command_add(in_file: PathBuf) {
+
+    let dir = if in_file.is_dir() {
+        match fs::read_dir(&in_file) {
+            Ok(dir) => Some(dir),
+            Err(_) => None
+        }
+    } else { None };
+
+    match dir {
+        Some(dir) => {
+            for entry in dir {
+                let entry = entry.expect("TODO handle this better");
+                let path = entry.path();
+
+                if path.extension().unwrap() == "md" {
+                    add_nota(path);
+                }
+            }
+        },
+        None => {
+            add_nota(in_file);
+        }
+    }
 }
 
 pub fn command_update() {

@@ -129,6 +129,8 @@ fn export_single_file(mut file_path: PathBuf, handlebars: & Handlebars) -> Resul
 
     data.insert("body".to_string(), a);
 
+    data.insert("entry".to_string(), String::from("present"));
+
     let mut output_file = File::create(out_file).unwrap();
 
     output_file.write_all(handlebars.render("t1", &data).unwrap().as_bytes()).expect("TODO remove expects");

@@ -2,6 +2,9 @@ use std::fs::{File, read, create_dir};
 use std::io::prelude::*;
 use std::io::Error;
 use std::path::{PathBuf};
+use ring::digest::{Context, Digest, SHA256};
+
+use anyhow::Result;
 
 pub fn create_folder(path: &str) -> Result<(),Error>{
     debug!("create_folder {:?}", path);
@@ -30,4 +33,20 @@ pub fn write_bytes(path: &str, bytes: &Vec<u8>) -> Result<(), Error>{
     debug!("write bytes {:?}", path);
     File::create(path)?.write_all(bytes)?;
     Ok(())
+}
+
+
+pub fn sha256_digest<R: Read>(mut reader: R) -> Result<Digest> {
+    let mut context = Context::new(&SHA256);
+    let mut buffer = [0; 1024];
+
+    loop {
+        let count = reader.read(&mut buffer)?;
+        if count == 0 {
+            break;
+        }
+        context.update(&buffer[..count]);
+    }
+
+    Ok(context.finish())
 }

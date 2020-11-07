@@ -9,6 +9,18 @@ pub const skeleton : &str =
     <link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/water.css@2/out/water.css\">
 </head>
 <body>
+    {{#if entry}}
+    <form action=\"index.html\">
+        <input style=\"float: right;\" type=\"submit\" value=\"Back to Index 🏡\" />
+    </form>
+    {{/if}}
     {{{body}}}
+    {{#if entry}}
+    <hr>
+    <a href=\"./index.html\" style=\"float: left;\">⬅️ Back to index</a>
+    <a href=\"#top\" style=\"float: right;\">To the top ⬆️</a>
+    <br/>
+    {{/if}}
+<div/>
 </body>
 </html>";
