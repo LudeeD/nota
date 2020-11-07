@@ -113,18 +113,22 @@ pub fn command_new(new_nota_name: Option<&str>) {
 
 fn add_nota(in_file: PathBuf) {
 
+    debug!("Adding File {:?}", in_file);
+
     let mut index = index::list::load().expect("TODO remove expects | load index");
+
+    let file_name = in_file.file_name().unwrap();
 
     let input = File::open(&in_file).expect("TODO remove expects | open file input");
     let reader = BufReader::new(input);
     let digest = util::filesystem::sha256_digest(reader).expect("TODO remove expects | create digest");
-    let hex_digest = &HEXUPPER.encode(digest.as_ref())[..4];
+    let hex_digest = HEXUPPER.encode(digest.as_ref());
 
     let nota_folder = util::envs::main_folder();
 
     let mut new_file = PathBuf::from(nota_folder);
 
-    new_file.push(hex_digest);
+    new_file.push(file_name);
     new_file.set_extension("md");
 
     // TODO check if the file already exists
@@ -140,19 +144,20 @@ fn add_nota(in_file: PathBuf) {
         uid: 0,
         original_title: Some(String::from(&info.title)),
         file_path: new_file,
-        contents_digest: String::from(&info.contents_digest),
+        contents_digest: hex_digest,
         replaced_by: None
     };
 
     index::list::add_new_nota(&mut index, index_entry).expect("TODO remove expects");
 
-    index::list::save(&index);
+    index::list::save(&index).expect("TODO remove expects | save index");
 }
 
 /// move file to the NOTA location
 pub fn command_add(in_file: PathBuf) {
 
     let dir = if in_file.is_dir() {
+        debug!("command_add arg is dir");
         match fs::read_dir(&in_file) {
             Ok(dir) => Some(dir),
             Err(_) => None
@@ -161,6 +166,7 @@ pub fn command_add(in_file: PathBuf) {
 
     match dir {
         Some(dir) => {
+            debug!("Adding All files from dir: {:?}", dir);
             for entry in dir {
                 let entry = entry.expect("TODO handle this better");
                 let path = entry.path();

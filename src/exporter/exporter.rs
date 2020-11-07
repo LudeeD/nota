@@ -75,16 +75,58 @@ pub fn export(file_path: Option<PathBuf>) -> Result<()> {
 
     let mut handlebars = Handlebars::new();
 
-    handlebars.register_template_string("t1", templates::skeleton);
+    handlebars.register_template_string("entry", templates::entry)?;
+    handlebars.register_template_string("index", templates::index)?;
 
     match file_path {
         Some(f) => export_single_file(f, &handlebars),
         None => export_all_folder(&handlebars) 
-    }
+    }?;
+
+    export_index(&handlebars)
 
     // let mut a = PathBuf::from("C:\\Users\\Luís Silva\\Desktop\\NOTA\\1.md");
 
     // export_single_file(a, handlebars)
+}
+
+#[derive(Serialize)]
+struct Person {
+  link: String,
+  title: String,
+}
+
+fn export_index(handlebars: & Handlebars) -> Result<()> { 
+
+    let index = crate::index::list::load().expect("TODO remove expects | load index");
+
+    let mut data_ext = BTreeMap::new();
+
+    let mut list = vec![];
+
+    for entry in index.into_iter() {
+        let mut link = entry.file_path;
+        link.set_extension("html");
+        let link = String::from(link.file_name().unwrap().to_str().unwrap());
+        let title = match entry.original_title {
+            Some(s) => s,
+            None => String::from("No title")
+        };
+        list.push(Person{link, title})
+    }
+
+    data_ext.insert("nav", list);
+
+    let export_folder = util::envs::export_folder();
+    let mut index_file = PathBuf::from(export_folder);
+    index_file.push("index");
+    index_file.set_extension("html");
+
+    let mut index_file = File::create(index_file).unwrap();
+
+    index_file.write_all(handlebars.render("index", &data_ext).unwrap().as_bytes()).expect("TODO remove expects");
+
+    Ok(())
 }
 
 fn export_all_folder( handlebars: & Handlebars ) -> Result<()> {
@@ -129,11 +171,9 @@ fn export_single_file(mut file_path: PathBuf, handlebars: & Handlebars) -> Resul
 
     data.insert("body".to_string(), a);
 
-    data.insert("entry".to_string(), String::from("present"));
-
     let mut output_file = File::create(out_file).unwrap();
 
-    output_file.write_all(handlebars.render("t1", &data).unwrap().as_bytes()).expect("TODO remove expects");
+    output_file.write_all(handlebars.render("entry", &data).unwrap().as_bytes()).expect("TODO remove expects");
 
     Ok(())
 }
