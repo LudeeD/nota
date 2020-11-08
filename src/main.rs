@@ -51,8 +51,12 @@ fn main() {
         nota::command_update(); 
     }
 
-    if let Some(_matches_list) = matches.subcommand_matches("export") {
-        nota::command_export(); 
+    if let Some(matches_export) = matches.subcommand_matches("export") {
+        let file = match matches_export.value_of("PATH") {
+            Some(path) => Some(PathBuf::from(path)),
+            None => None
+        };
+        nota::command_export(file); 
     }
 
 }

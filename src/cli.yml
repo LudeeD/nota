@@ -56,3 +56,8 @@ subcommands:
                 required: false
     - export:
         about : book creation related operation
+        args:
+            - PATH:
+                help: export file in <PATH>
+                index: 1
+                required: false 

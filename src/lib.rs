@@ -192,9 +192,9 @@ pub fn command_list() {
     index::list::list(&index);
 }
 
-pub fn command_export() {
+pub fn command_export(in_file: Option<PathBuf>) {
     exporter::exporter::init();
-    exporter::exporter::export(Option::None);
+    exporter::exporter::export(in_file);
 }
 
 pub fn command_agenda() {

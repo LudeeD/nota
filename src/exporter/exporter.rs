@@ -149,17 +149,15 @@ fn export_all_folder( handlebars: & Handlebars ) -> Result<()> {
 
 fn export_single_file(mut file_path: PathBuf, handlebars: & Handlebars) -> Result<()> {
     debug!("exporting file {:?}", file_path);
+    let export_folder = util::envs::export_folder();
+    let mut out_file = PathBuf::from(export_folder);
 
     let mut data = BTreeMap::new();
-
-    let mut out_file = PathBuf::from(file_path.clone());
 
     let name = file_path.file_name().expect("No file name").to_str().expect("Failed conversion to str");
 
     let name = String::from(name);
 
-    out_file.pop();
-    out_file.push("export");
     out_file.push(name);
     out_file.set_extension("html");
 

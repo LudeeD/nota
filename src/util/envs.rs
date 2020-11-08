@@ -57,6 +57,7 @@ pub fn init() -> Result<()> {
         .with_context(|| format!("Failed to set env"))?);
 
     let mut export_folder = PathBuf::from(&nota_dir);
+    export_folder.push(magic_folder_name);
     export_folder.push("export");
 
     debug!("Setting NOTA_EXPORT_FOLDER env");
