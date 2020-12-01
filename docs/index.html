@@ -11,7 +11,81 @@
     <form action="index.html">
         <input style="float: right;" type="submit" value="Back to Index 🏡" />
     </form>
-    <h1>Documentation Index</h1>
+    <h1>NOTA Docs</h1>
+<p>NOTA is a simple note taker tool that helps you organize your notes.</p>
+<h1>Why Another tool ? Aren't there enough already ?</h1>
+<p>Yeah, there are and that is part of the problem NOTA aims to fix.
+I wanted to write my notes like I like to write my code: with no predefined 
+editor, only tooling around the language.
+I wanted to be this way for my notes too, I wanted to be able to edit and take
+notes with any editor I wanted. No app lock in's no enforced programs or shaddy
+web apps to use to do the things I wanted.</p>
+<p>Simple text files, with a litle bit of tooling around for the extra producivity</p>
+<p><strong>Very early state in the project, not ready in any way shape or form xD</strong></p>
+<h1>Features</h1>
+<ul>
+<li>Basic note management (create, update list, search)</li>
+<li>Linking and Reverse Linking of notes</li>
+<li>Export to other formats</li>
+</ul>
+<h1>Install</h1>
+<ul>
+<li>Download the binary</li>
+<li>Add it to your path</li>
+<li>Create a folder for your notes (optional)</li>
+<li>Add a Environment Variable NOTA_FOLDER that points to the folder</li>
+<li>You are good to go !</li>
+</ul>
+<h1>API</h1>
+<ul>
+<li>
+<p>nota init</p>
+<ul>
+<li>initializes the NOTA folders</li>
+<li>Status: <em>Buggy</em></li>
+</ul>
+</li>
+<li>
+<p>nota list</p>
+<ul>
+<li>list available notas</li>
+<li>Status: <em>TODO</em></li>
+</ul>
+</li>
+<li>
+<p>nota new <em>NAME</em></p>
+<ul>
+<li><em>NAME</em> is optional</li>
+<li>if <em>NAME</em> is provided use it to create nota </li>
+<li>if not create a new one under Daily/<CurrentDay></li>
+<li>Status: <em>Buggy</em></li>
+</ul>
+</li>
+<li>
+<p>nota add <em>PATH</em></p>
+<ul>
+<li><em>PATH</em> is required</li>
+<li>adds an existing markdown file to the nota folder </li>
+<li>storing their metadata in the nota index</li>
+<li>Status: <em>Buggy</em></li>
+</ul>
+</li>
+<li>
+<p>nota update <em>NAME</em></p>
+<ul>
+<li>updates the NOTA by adding their metadata to the index</li>
+<li>Status: <em>TODO</em></li>
+</ul>
+</li>
+<li>
+<p>nota export <em>NAME</em></p>
+<ul>
+<li><em>NAME</em> is optional</li>
+<li>exports the nota into the specific format, right now HTML</li>
+<li>Status: <em>Buggy</em></li>
+</ul>
+</li>
+</ul>
 
     <hr>
     <a href="./index.html" style="float: left;">⬅️ Back to index</a>
