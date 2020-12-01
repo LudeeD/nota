@@ -29,36 +29,31 @@ use std::io::{BufReader, Read, Write};
 use data_encoding::HEXUPPER;
 
 pub fn init_envs() {
-    util::envs::init();
+    util::envs::setup();
+}
+
+pub fn assert_nota_folder() -> bool{
+    PathBuf::from(util::envs::magic_folder()).is_dir()
+}
+
+pub fn read_confs() {
+   configs::read();
 }
 
 /// The init command used by the CLI
 /// the command will initialize a NOTA folder in the folder defined with the environment variable NOTA_FOLDER
-pub fn command_init() {
+pub fn command_init() -> bool {
 
     // Create NOTA main Folder
-    let path = util::envs::main_folder();
+    let path = util::envs::magic_folder();
     let path = PathBuf::from(&path);
 
     if path.exists() && path.is_dir() {
-        info!("Main NOTA folder already exists");
+        return false;
     } else {
         if let Some(path) = path.to_str() {
-            info!("Creating main NOTA folder in - {:?}", path);
-            util::filesystem::create_folder(path).expect("This should not fail :(")
-        };
-    }
-
-    // Create NOTA magic folder (.nota)
-    let path = util::envs::nota_folder();
-    let path = PathBuf::from(&path);
-
-    if path.exists() && path.is_dir() {
-        info!("Magic NOTA folder already exists");
-    } else {
-        if let Some(path) = path.to_str() {
-            info!("Creating Magic NOTA folder in - {:?}", path);
-            util::filesystem::create_folder(path).expect("This should not fail :(")
+            info!("Magic NOTA folder in - {:?}", path);
+            util::filesystem::create_folder(path).expect("This should not fail 😢")
         };
     }
 
@@ -77,6 +72,8 @@ pub fn command_init() {
         Ok(_) => info!("Index List ready!"),
         Err(e) => error!("Index List not ready {}", e)
     }
+
+    return true;
 }
 
 pub fn command_new(new_nota_name: Option<&str>) {
@@ -124,7 +121,7 @@ fn add_nota(in_file: PathBuf) {
     let digest = util::filesystem::sha256_digest(reader).expect("TODO remove expects | create digest");
     let hex_digest = HEXUPPER.encode(digest.as_ref());
 
-    let nota_folder = util::envs::main_folder();
+    let nota_folder = util::envs::nota_folder();
 
     let mut new_file = PathBuf::from(nota_folder);
 
@@ -168,11 +165,14 @@ pub fn command_add(in_file: PathBuf) {
         Some(dir) => {
             debug!("Adding All files from dir: {:?}", dir);
             for entry in dir {
-                let entry = entry.expect("TODO handle this better");
-                let path = entry.path();
-
-                if path.extension().unwrap() == "md" {
-                    add_nota(path);
+                if let Ok(entry) = entry {
+                    if let Ok(file_type) = entry.file_type() {
+                        if file_type.is_file() {
+                            if entry.path().extension().unwrap() == "md" {
+                                add_nota(entry.path());
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -180,10 +180,23 @@ pub fn command_add(in_file: PathBuf) {
             add_nota(in_file);
         }
     }
+
 }
 
 pub fn command_update() {
-    panic!("Not Implemented")
+/*
+    match index::list::init() {
+        Ok(list) => {
+            index::list::save(&list).expect("Couldn't save index");
+            list
+        }
+        Err(e)   => panic!(e)
+    };
+
+    let folder = util::envs::main_folder();
+
+    //command_add(PathBuf::from(folder));
+*/
 }
 
 pub fn command_list() {
@@ -192,9 +205,10 @@ pub fn command_list() {
     index::list::list(&index);
 }
 
-pub fn command_export(in_file: Option<PathBuf>) {
-    exporter::exporter::init();
-    exporter::exporter::export(in_file);
+pub fn command_export(input: Option<PathBuf>, outfolder: PathBuf) {
+    debug!("Export command input {:?} outfolder {:?}", input, outfolder);
+    exporter::exporter::init(&outfolder);
+    exporter::exporter::export(input);
 }
 
 pub fn command_agenda() {

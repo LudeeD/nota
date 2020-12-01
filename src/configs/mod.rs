@@ -10,6 +10,10 @@ struct Configs{
     editor: Option<String>,
 }
 
+pub fn read() -> Result<()> {
+    Ok(())
+}
+
 pub fn init() -> Result<()> {
 
     // Create configs file (.notaconfig)

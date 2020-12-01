@@ -62,13 +62,18 @@ use walkdir::WalkDir;
 //     return Ok(());
 // }
 
-pub fn init() -> Result<()> {
+pub fn init(export_folder: &PathBuf) -> Result<()> {
 
-    let export_folder = util::envs::export_folder();
-    debug!("creating exporter folder in {:?}", export_folder);
-    util::filesystem::create_folder(&export_folder);
+    info!("Creating Export Folder {:?}", export_folder);
 
-    Ok(())
+    match export_folder.to_str() {
+        Some(s) => {
+            crate::util::envs::set_export_folder(s);
+            util::filesystem::create_folder(s);
+            Ok(())
+        },
+        _ => Err(anyhow!("Export folder not valid"))
+    }
 }
 
 pub fn export(file_path: Option<PathBuf>) -> Result<()> {
@@ -83,11 +88,12 @@ pub fn export(file_path: Option<PathBuf>) -> Result<()> {
         None => export_all_folder(&handlebars) 
     }?;
 
-    export_index(&handlebars)
+    // export_index(&handlebars)
 
     // let mut a = PathBuf::from("C:\\Users\\Luís Silva\\Desktop\\NOTA\\1.md");
 
     // export_single_file(a, handlebars)
+    Ok(())
 }
 
 #[derive(Serialize)]
@@ -132,7 +138,7 @@ fn export_index(handlebars: & Handlebars) -> Result<()> {
 fn export_all_folder( handlebars: & Handlebars ) -> Result<()> {
     debug!("exporting all folder");
 
-    let nota_path = util::envs::main_folder();
+    let nota_path = util::envs::nota_folder();
 
     for entry in WalkDir::new(nota_path).follow_links(false).into_iter().filter_map(|e| e.ok()) {
         let fname = String::from(entry.file_name().to_string_lossy());

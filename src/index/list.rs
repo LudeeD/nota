@@ -34,7 +34,7 @@ pub fn load() -> Result<Vec<IndexEntry>> {
 
     debug!("Loading Index to memory");
 
-    let index_path = envs::index_path();
+    let index_path = envs::list_path();
 
     let bytes = filesystem::read_bytes(&index_path)?;
 
@@ -47,7 +47,7 @@ pub fn load() -> Result<Vec<IndexEntry>> {
 pub fn save(index_to_save: &Vec<IndexEntry>) -> Result<()> {
     debug!("Saving Index");
 
-    let index_path = envs::index_path();
+    let index_path = envs::list_path();
 
     let encoded : Vec<u8> = match bincode::serialize(index_to_save) {
         Ok(bytes) => bytes,

@@ -7,7 +7,6 @@ extern crate log;
 
 extern crate simple_logger;
 
-
 use std::path::{PathBuf};
 
 fn main() {
@@ -24,13 +23,23 @@ fn main() {
     }
     debug!("Log initialized");
 
-
     nota::init_envs();
     debug!("Envs loaded");
 
     if let Some(_matches_init) = matches.subcommand_matches("init") {
-        nota::command_init();
+        if ! nota::command_init() {
+            info!("It was not possible to initialize NOTA folder, maybe this is a NOTA folder already");
+            return;
+        }
     }
+
+    if ! nota::assert_nota_folder() {
+        info!("Not a NOTA folder, stoping...");
+        return;
+    }
+
+    nota::read_confs();
+    debug!("Configuration File read");
 
     if let Some(matches_new) = matches.subcommand_matches("new") {
         let new_nota_name = matches_new.value_of("NAME").unwrap();
@@ -41,6 +50,8 @@ fn main() {
         let file = matches_add.value_of("PATH").unwrap();
         let file = PathBuf::from(file);
         nota::command_add(file); 
+        info!("File(s) moved and added");
+        return;
     }
 
     if let Some(_matches_list) = matches.subcommand_matches("list") {
@@ -56,7 +67,14 @@ fn main() {
             Some(path) => Some(PathBuf::from(path)),
             None => None
         };
-        nota::command_export(file); 
+        let outfolder = match matches_export.value_of("outfolder") {
+            Some(path) => PathBuf::from(path),
+            None => {
+                println!("FUCk");
+                return
+            }
+        };
+        nota::command_export(file, outfolder); 
     }
 
 }
