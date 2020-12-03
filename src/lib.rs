@@ -207,8 +207,10 @@ pub fn command_list() {
 
 pub fn command_export(input: Option<PathBuf>, outfolder: PathBuf) {
     debug!("Export command input {:?} outfolder {:?}", input, outfolder);
+    let index = index::list::load().expect("TODO remove expect");
+
     exporter::exporter::init(&outfolder);
-    exporter::exporter::export(input);
+    exporter::exporter::export_registered(&index);
 }
 
 pub fn command_agenda() {

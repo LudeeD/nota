@@ -9,9 +9,15 @@ pub const entry : &str =
     <link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/water.css@2/out/water.css\">
 </head>
 <body>
-    <form action=\"index.html\">
-        <input style=\"float: right;\" type=\"submit\" value=\"Back to Index 🏡\" />
-    </form>
+<div class=\"row\">
+    <div>
+        <h1> Title title </h1> 
+        <p> Last Modified: akljdlakjdlakjd </p>
+    </div>
+    <a href=\"index.html\" style=\"float: right;\"><p> Last Modified: akljdlakjdlakjd </p></a>
+</div>
+<hr>
+
     {{{body}}}
     <hr>
     <a href=\"./index.html\" style=\"float: left;\">⬅️ Back to index</a>

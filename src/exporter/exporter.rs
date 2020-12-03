@@ -13,6 +13,12 @@ use std::io::Write;
 use std::fs::File;
 
 use walkdir::WalkDir;
+
+use crate::index::list::IndexEntry;
+use std::time::SystemTime;
+use chrono::{DateTime, TimeZone, Utc};
+use std::convert::TryInto;
+
 //
 //use std::path::{ PathBuf};
 //
@@ -76,11 +82,65 @@ pub fn init(export_folder: &PathBuf) -> Result<()> {
     }
 }
 
+
+pub fn export_registered(list: &Vec<IndexEntry>) -> Result<()> {
+
+    let templates_nota = util::envs::magic_folder();
+    let mut templates_nota = PathBuf::from(templates_nota);
+    templates_nota.push("templates");
+    templates_nota.push("nota");
+    templates_nota.set_extension("html");
+
+
+    let export_folder = util::envs::export_folder();
+    let mut data = BTreeMap::new();
+
+    let mut handlebars = Handlebars::new();
+    handlebars.register_template_file("entry", templates_nota).expect("damn");
+
+    for item in list {
+        let item_path = item.file_path.clone();
+        let mut original_file = File::open(&item_path)?;
+        let metadata = original_file.metadata()?;
+        let mut out_file = PathBuf::from(&export_folder);
+
+        let name = item_path
+                    .file_name().unwrap()
+                    .to_str().unwrap();
+
+        out_file.push(name);
+        out_file.set_extension("html");
+
+        debug!("export file: {:?} to {:?}", &item.file_path, &out_file);
+
+        let a = parser::parse_to_html(item_path)?;
+
+        data.insert("body".to_string(), a);
+
+        let dt = Utc.timestamp( metadata.modified()?.duration_since(SystemTime::UNIX_EPOCH)?.as_secs().try_into().unwrap(), 0 );
+
+        data.insert("lastmodified".to_string(),dt.to_rfc2822() );
+
+        let mut output_file = File::create(out_file).unwrap();
+
+        output_file.write_all(handlebars.render("entry", &data).unwrap().as_bytes()).expect("TODO remove expects");
+    }
+
+    Ok(())
+}
+
 pub fn export(file_path: Option<PathBuf>) -> Result<()> {
+
+    let templates_nota = util::envs::magic_folder();
+    let mut templates_nota = PathBuf::from(templates_nota);
+    templates_nota.push("templates");
+    templates_nota.push("nota");
+    templates_nota.set_extension("html");
+
 
     let mut handlebars = Handlebars::new();
 
-    handlebars.register_template_string("entry", templates::entry)?;
+    handlebars.register_template_file("entry", templates_nota).expect("damn");
     handlebars.register_template_string("index", templates::index)?;
 
     match file_path {
