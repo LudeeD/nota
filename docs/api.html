@@ -8,62 +8,38 @@
 </head>
 <body>
 <div class="row">
-<p><b>Last Update:</b> Thu, 03 Dec 2020 23:17:24 +0000</p>
+<p><b>Last Update:</b> Sun, 06 Dec 2020 18:31:16 +0000</p>
 <a href="index.html" style="float: right;"><p>Back to index 🏠</p></a>
 </div>
 <hr>
 <h1>NOTA API</h1>
 <pre><code>TODO: Still not stable
 </code></pre>
-<ul>
-<li>
-<p>nota init</p>
-<ul>
-<li>initializes the NOTA folders</li>
-<li>Status: <em>Buggy</em></li>
-</ul>
-</li>
-<li>
-<p>nota list</p>
-<ul>
-<li>list available notas</li>
-<li>Status: <em>TODO</em></li>
-</ul>
-</li>
-<li>
-<p>nota new <em>NAME</em></p>
-<ul>
-<li><em>NAME</em> is optional</li>
-<li>if <em>NAME</em> is provided use it to create nota </li>
-<li>if not create a new one under Daily/<CurrentDay></li>
-<li>Status: <em>Buggy</em></li>
-</ul>
-</li>
-<li>
-<p>nota add <em>PATH</em></p>
-<ul>
-<li><em>PATH</em> is required</li>
-<li>adds an existing markdown file to the nota folder </li>
-<li>storing their metadata in the nota index</li>
-<li>Status: <em>Buggy</em></li>
-</ul>
-</li>
-<li>
-<p>nota update <em>NAME</em></p>
-<ul>
-<li>updates the NOTA by adding their metadata to the index</li>
-<li>Status: <em>TODO</em></li>
-</ul>
-</li>
-<li>
-<p>nota export <em>NAME</em></p>
-<ul>
-<li><em>NAME</em> is optional</li>
-<li>exports the nota into the specific format, right now HTML</li>
-<li>Status: <em>Buggy</em></li>
-</ul>
-</li>
-</ul>
+<p>The following api mght be in one of the following states:</p>
+<ol>
+<li><em>Usable</em></li>
+<li><em>Buggy</em></li>
+<li><em>Future</em></li>
+</ol>
+<h2>$ nota init</h2>
+<p><strong>Status:</strong> <em>Usable</em></p>
+<p>setups the current folder to be a NOTA folder
+creates the magic folder .nota and things inside</p>
+<h2>$ nota list</h2>
+<p><strong>Status:</strong> <em>Usable</em></p>
+<p>lists indexed NOTAs
+basically, prints the current index state</p>
+<h2>$ nota update</h2>
+<p><strong>Status:</strong> <em>Buggy</em></p>
+<p>updates the current NOTA folder
+For instance, adding all the missing files to the index</p>
+<h2>$ nota add <em>PATH</em></h2>
+<p><strong>Status:</strong> <em>Usable</em></p>
+<p>adds an existing markdown file to the nota folder 
+storing their metadata in the nota index</p>
+<h2>$ nota export</h2>
+<p><strong>Status:</strong> <em>Usable</em></p>
+<p>exports the current NOTA folder to html</p>
 
 </body>
 <footer>

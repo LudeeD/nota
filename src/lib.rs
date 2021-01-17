@@ -5,45 +5,49 @@ extern crate serde;
 extern crate bincode;
 extern crate comrak;
 extern crate handlebars;
-extern crate walkdir;
 extern crate pulldown_cmark;
+extern crate walkdir;
 
 #[macro_use]
 extern crate anyhow;
 
-mod util;
 mod configs;
-mod links;
-mod index;
-mod parser;
 mod exporter;
+mod index;
+mod links;
+mod parser;
+mod util;
 //mod database;
 //mod filesystem;
 //mod error;
 
 //use error::Upsie;
-use std::path::{PathBuf};
+use data_encoding::HEXUPPER;
 use std::fs;
 use std::fs::File;
 use std::io::{BufReader, Read, Write};
-use data_encoding::HEXUPPER;
+use std::path::PathBuf;
+use std::time::SystemTime;
 
 pub fn init_envs() {
     util::envs::setup();
 }
 
-pub fn assert_nota_folder() -> bool{
+pub fn assert_nota_folder() -> bool {
     PathBuf::from(util::envs::magic_folder()).is_dir()
 }
 
 pub fn read_confs() {
-   configs::read();
+    configs::read();
+}
+
+pub fn demo() {
+    println!("wtf");
 }
 
 /// The init command used by the CLI
 /// the command will initialize a NOTA folder in the folder defined with the environment variable NOTA_FOLDER
 pub fn command_init() -> bool {
-
     // Create NOTA main Folder
     let path = util::envs::magic_folder();
     let path = PathBuf::from(&path);
@@ -60,17 +64,17 @@ pub fn command_init() -> bool {
     // Creates a config file
     match configs::init() {
         Ok(_) => info!("Configurations ready!"),
-        Err(e) => error!("Configurations not ready {}", e)
+        Err(e) => error!("Configurations not ready {}", e),
     }
 
     match links::init() {
         Ok(_) => info!("Links ready!"),
-        Err(e) => error!("Links not ready {}", e)
+        Err(e) => error!("Links not ready {}", e),
     }
 
     match index::list::init() {
         Ok(_) => info!("Index List ready!"),
-        Err(e) => error!("Index List not ready {}", e)
+        Err(e) => error!("Index List not ready {}", e),
     }
 
     return true;
@@ -105,98 +109,145 @@ pub fn command_new(new_nota_name: Option<&str>) {
     //        error!("Error creating a new NOTA {}", err)
     //    })
     //    .unwrap();
-
 }
 
-fn add_nota(in_file: PathBuf) {
+fn update_nota(in_file: PathBuf) {
+    debug!("Update File {:?}", in_file);
 
-    debug!("Adding File {:?}", in_file);
-
-    let mut index = index::list::load().expect("TODO remove expects | load index");
-
-    let file_name = in_file.file_name().unwrap();
-
-    let input = File::open(&in_file).expect("TODO remove expects | open file input");
-    let reader = BufReader::new(input);
-    let digest = util::filesystem::sha256_digest(reader).expect("TODO remove expects | create digest");
-    let hex_digest = HEXUPPER.encode(digest.as_ref());
-
-    let nota_folder = util::envs::nota_folder();
-
-    let mut new_file = PathBuf::from(nota_folder);
-
-    new_file.push(file_name);
-    new_file.set_extension("md");
-
-    // TODO check if the file already exists
-    File::create(&new_file).expect("TODO remove expects | create file");
-
-    fs::copy(&in_file, &new_file).expect("TODO remove expects | copy file");
-
-    let info = parser::parse(&in_file).unwrap();
-
-    let info = info.as_ref();
-
-    let index_entry = index::list::IndexEntry{
-        uid: 0,
-        original_title: Some(String::from(&info.title)),
-        file_path: new_file,
-        contents_digest: hex_digest,
-        replaced_by: None
-    };
-
-    index::list::add_new_nota(&mut index, index_entry).expect("TODO remove expects");
-
-    index::list::save(&index).expect("TODO remove expects | save index");
-}
-
-/// move file to the NOTA location
-pub fn command_add(in_file: PathBuf) {
-
-    let dir = if in_file.is_dir() {
-        debug!("command_add arg is dir");
-        match fs::read_dir(&in_file) {
-            Ok(dir) => Some(dir),
-            Err(_) => None
-        }
-    } else { None };
-
-    match dir {
-        Some(dir) => {
-            debug!("Adding All files from dir: {:?}", dir);
-            for entry in dir {
-                if let Ok(entry) = entry {
-                    if let Ok(file_type) = entry.file_type() {
-                        if file_type.is_file() {
-                            if entry.path().extension().unwrap() == "md" {
-                                add_nota(entry.path());
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        None => {
-            add_nota(in_file);
-        }
+    if !in_file.is_file() {
+        error!("Not a file! Not adding anything");
+        return;
     }
 
+    let mut index = index::list::load()
+        .expect("Failed to Load the Index"); 
+    let input = File::open(&in_file)
+        .expect("Error opening file");
+    let modified_time = input
+        .metadata()
+        .expect("File with no metadata")
+        .modified()
+        .expect("File with no modified data");
+
+    let mut existing_entry = None;
+
+    // Check if file exists and if needs to be updates
+    let update = match index::list::search_for_path(&index, &in_file) {
+        Ok(entry) => {
+            // There is already an entry with the path
+            // but we need to update it if it was updated
+            let lastupdate = entry.lastupdate;
+            existing_entry = Some(entry);
+            modified_time > lastupdate
+        }
+        Err(_) => true,
+    };
+
+    if update {
+        info!("Updating File {:?}", &in_file);
+        let reader = BufReader::new(input);
+        let digest = util::filesystem::sha256_digest(reader).expect("TODO remove expects | create digest");
+        let hex_digest = HEXUPPER.encode(digest.as_ref());
+        // No entry with that path
+        let info = parser::parse(&in_file).unwrap();
+        let info = info.as_ref();
+
+        match existing_entry {
+            Some(entry) => {
+                index = index::list::update_nota_entry(index, entry).expect("Failed to update NOTA entry");
+            },
+            None => {
+                let new_entry = index::list::IndexEntry {
+                    uid: 0,
+                    title: Some(String::from(&info.title)),
+                    path: in_file,
+                    digest: hex_digest,
+                    lastupdate: SystemTime::now(),
+                    lastexport: None,
+                    inlinks: Vec::new()
+                };
+
+                index = index::list::add_nota_entry(index, new_entry).expect("Failed to add NOTA entry");
+            }
+        };
+
+        index::list::save(&index).expect("TODO remove expects | save index");
+    }
+}
+
+fn add_nota(mut add_path: PathBuf) {
+
+    if !add_path.is_file() {
+        error!("Not a file! Not adding anything");
+        return;
+    }
+
+    debug!("{:?}", add_path);
+    let nota_folder = util::envs::nota_folder();
+    debug!("{:?}", nota_folder);
+
+    if ! add_path.starts_with(&nota_folder) {
+        debug!("File not in NOTA folder, copying...");
+        let file_name = add_path.file_name().expect("File with no name?"); 
+        let mut new_file = PathBuf::from(nota_folder);
+        new_file.push(file_name);
+        new_file.set_extension("md");
+        File::create(&new_file).expect("Failed to create new file");
+        info!{"New file created {:?}", new_file};
+        fs::copy(&add_path, &new_file).expect("Failed to copy information");
+        add_path = new_file;
+    }
+
+    update_nota(add_path);
+}
+
+fn add_folder(in_folder: PathBuf) {
+    // add each markdown file to nota
+    let folder = match fs::read_dir(in_folder) {
+        Ok(folder) => folder,
+        Err(_) => {
+            info!("Something Went terribly wrong");
+            return;
+        }
+    };
+
+    folder
+        .into_iter()
+        .filter_map(Result::ok)
+        .filter(|entry| entry.path().is_file())
+        .filter(|entry| entry.path().extension().unwrap() == "md")
+        .map(|entry| entry.path().canonicalize())
+        .filter_map(Result::ok)
+        .for_each(|entry| add_nota(entry));
+}
+
+/// Move file to the NOTA location
+/// 
+pub fn command_add(add_path: PathBuf) {
+    if add_path.is_dir() {
+        add_folder(add_path);
+    }else {
+        add_nota(add_path);
+    }
 }
 
 pub fn command_update() {
-/*
-    match index::list::init() {
-        Ok(list) => {
-            index::list::save(&list).expect("Couldn't save index");
-            list
+    // TODO change instead of iterating over NOTA folder
+    // only update the already index NOTAs
+    let folder = match fs::read_dir(PathBuf::from(util::envs::nota_folder())) {
+        Ok(folder) => folder,
+        Err(_) => {
+            info!("Something Went terribly wrong");
+            return;
         }
-        Err(e)   => panic!(e)
     };
 
-    let folder = util::envs::main_folder();
-
-    //command_add(PathBuf::from(folder));
-*/
+    folder
+        .into_iter()
+        .filter_map(Result::ok)
+        .filter(|entry| entry.path().is_file())
+        .filter(|entry| entry.path().extension().unwrap() == "md")
+        .for_each(|entry| add_nota(entry.path()));
 }
 
 pub fn command_list() {
@@ -235,7 +286,7 @@ pub fn command_agenda() {
 //    // add file to index
 //    index.add_new_nota(nota_name, next_uid);
 //
-//    // create file <uid>.md 
+//    // create file <uid>.md
 //    let new_nota_path = structure::create_nota(&next_uid.to_string(), nota_name)?;
 //
 //    //let default_text = format!("# {}", nota_name);
@@ -271,7 +322,7 @@ pub fn command_agenda() {
 //    let next_uid = index.get_next_uid();
 //    info!("next_uid {}", next_uid);
 //
-//    // create file <uid>.md 
+//    // create file <uid>.md
 //    let nota_name = structure::add_nota(&next_uid.to_string(), path)?;
 //    info!("nota_name {}", nota_name);
 //

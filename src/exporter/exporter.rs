@@ -99,7 +99,7 @@ pub fn export_registered(list: &Vec<IndexEntry>) -> Result<()> {
     handlebars.register_template_file("entry", templates_nota).expect("damn");
 
     for item in list {
-        let item_path = item.file_path.clone();
+        let item_path = item.path.clone();
         let mut original_file = File::open(&item_path)?;
         let metadata = original_file.metadata()?;
         let mut out_file = PathBuf::from(&export_folder);
@@ -111,7 +111,7 @@ pub fn export_registered(list: &Vec<IndexEntry>) -> Result<()> {
         out_file.push(name);
         out_file.set_extension("html");
 
-        debug!("export file: {:?} to {:?}", &item.file_path, &out_file);
+        debug!("export file: {:?} to {:?}", &item.path, &out_file);
 
         let a = parser::parse_to_html(item_path)?;
 
@@ -171,10 +171,10 @@ fn export_index(handlebars: & Handlebars) -> Result<()> {
     let mut list = vec![];
 
     for entry in index.into_iter() {
-        let mut link = entry.file_path;
+        let mut link = entry.path;
         link.set_extension("html");
         let link = String::from(link.file_name().unwrap().to_str().unwrap());
-        let title = match entry.original_title {
+        let title = match entry.title {
             Some(s) => s,
             None => String::from("No title")
         };

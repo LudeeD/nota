@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use bincode;
 use std::path::PathBuf;
 use anyhow::Result;
+use std::time::SystemTime;
 
 use std::convert::TryInto;
 
@@ -11,10 +12,12 @@ use crate::util::{envs, filesystem};
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct IndexEntry {
     pub uid: u64,
-    pub original_title: Option<String>,
-    pub file_path: PathBuf,
-    pub contents_digest: String,
-    pub replaced_by: Option<u64>
+    pub title: Option<String>,
+    pub path: PathBuf,
+    pub digest: String,
+    pub lastupdate: SystemTime, 
+    pub lastexport: Option<SystemTime>,
+    pub inlinks: Vec<u64>
 }
 
 pub fn init() -> Result<Vec<IndexEntry>> {
@@ -71,7 +74,7 @@ pub fn list(index_to_list: &Vec<IndexEntry>) -> Result<()> {
     Ok(())
 }
 
-pub fn add_new_nota(index: &mut Vec<IndexEntry>, mut entry: IndexEntry) -> Result<()> {
+pub fn add_nota_entry(mut index: Vec<IndexEntry>, mut entry: IndexEntry) -> Result<Vec<IndexEntry>, ()> {
 
     let new_uid = index.len().try_into().unwrap();
 
@@ -79,7 +82,19 @@ pub fn add_new_nota(index: &mut Vec<IndexEntry>, mut entry: IndexEntry) -> Resul
 
     index.push(entry);
 
-    Ok(())
+    Ok(index)
+}
+
+pub fn update_nota_entry(mut index: Vec<IndexEntry>, entry: IndexEntry) -> Result<Vec<IndexEntry>, ()> {
+
+    for i in 0..index.len() {
+        let entry = index.get(i).unwrap();
+        if entry.uid == entry.uid {
+            index.insert(i, entry.clone());
+        }
+    }
+
+    Ok(index)
 }
 
 pub fn search_for_uid(index: & Vec<IndexEntry>, uid_to_search: u64) -> Result<IndexEntry> {
@@ -103,23 +118,15 @@ pub fn search_for_uid(index: & Vec<IndexEntry>, uid_to_search: u64) -> Result<In
 
 }
 
-pub fn search_for_path(index: & Vec<IndexEntry>, path_to_search: PathBuf) -> Result<IndexEntry> {
+pub fn search_for_path(index: & Vec<IndexEntry>, path_to_search: &PathBuf) -> Result<IndexEntry> {
 
-    let mut entry : Option<IndexEntry> = None;
+    let mut entry : Result<IndexEntry> = Err(anyhow!("No index entry"));
 
     for elem in index.iter() {
-
-        if elem.file_path == path_to_search {
-
-            entry = Some(elem.clone());
-
+        if elem.path == *path_to_search {
+            entry = Ok(elem.clone());
         }
-
     }
 
-    match entry {
-        Some(e) => Ok(e),
-        None => Err(anyhow!("No index entry found"))
-    }
-
+    entry
 }

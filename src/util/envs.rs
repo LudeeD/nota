@@ -23,7 +23,7 @@ pub fn configs_path() -> String { env::var("NOTA_CONFIGS_PATH").expect("set_envs
 
 pub fn setup() -> Result<()> {
 
-    let mut folder = env::current_dir()?;
+    let folder = env::current_dir()?.canonicalize()?;
 
     env::set_var("NOTA_FOLDER", &folder.to_str()
         .with_context(|| format!("Failed to set env"))?);
