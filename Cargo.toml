@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = {version = "2.33.0", features = ["yaml"]}
+clap = "3.0.0-beta.2"
 anyhow = "1.0.33"
 log = "0.4.8"
 simple_logger = "1.6.0"
@@ -23,3 +23,7 @@ regex = "1"
 chrono = "0.4"
 ring = "0.16.15"
 data-encoding = "2.3.0"
+
+[dependencies.rusqlite]
+version = "0.24.2"
+features = ["bundled"]

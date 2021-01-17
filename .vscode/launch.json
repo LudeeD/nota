@@ -7,9 +7,9 @@
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceRoot}/target/debug/nota.exe",
-            "args": ["-vvvvv", "update"],
+            "args": ["-vvvvv", "add", "--input", "."],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}",
+            "cwd": "${workspaceRoot}/notadocs",
             "environment": [],
             "externalConsole": true
         }
