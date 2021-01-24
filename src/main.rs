@@ -77,7 +77,7 @@ struct UpdateCommand{
 }
 
 /// Book generation commands
-#[derive(Clap)]
+#[derive(Clap, Debug)]
 #[clap(version = VERSION, author = AUTHOR)]
 struct ExportCommand{
     /// can be a file or a folder (default: indexed notes on current NOTA folder)
@@ -139,23 +139,14 @@ fn process_command_update(args: UpdateCommand){
     std::process::exit(0);
 }
 
-fn process_command_export(args: ExportCommand){
+fn process_command_export(args: ExportCommand) {
+    debug!("Export command {:?}", args);
+    assert_nota_folder();
 
-    //if let Some(matches_export) = matches.subcommand_matches("export") {
-    //    let file = match matches_export.value_of("PATH") {
-    //        Some(path) => Some(PathBuf::from(path)),
-    //        None => None
-    //    };
-    //    let outfolder = match matches_export.value_of("outfolder") {
-    //        Some(path) => PathBuf::from(path),
-    //        None => {
-    //            println!("FUCk");
-    //            return
-    //        }
-    //    };
-    //    nota::command_export(file, outfolder); 
-    //    return
-    //}
+    match nota::command_export(args.input, args.outfolder, args.templates) {
+        Ok(_) => std::process::exit(0),
+        Err(_) => std::process::exit(1)
+    }
 }
 
 fn main() {

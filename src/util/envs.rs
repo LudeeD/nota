@@ -7,11 +7,17 @@ pub fn set_export_folder(export_folder: &str) {
     env::set_var("NOTA_EXPORT_FOLDER", export_folder);
 }
 
+pub fn set_template_folder(template_folder: &str) {
+    env::set_var("NOTA_TEMPLATE_FOLDER", template_folder);
+}
+
 pub fn magic_folder() -> String { env::var("NOTA_MAGIC_FOLDER").expect("this should exist") }
 
 pub fn nota_folder() -> String { env::var("NOTA_FOLDER").expect("this should exist") }
 
 pub fn export_folder() -> String { env::var("NOTA_EXPORT_FOLDER").expect("this should exist") }
+
+pub fn template_folder() -> String { env::var("NOTA_TEMPLATE_FOLDER").expect("this should exist") }
 
 //pub fn links_folder() -> String { nota_folder() }
 
@@ -26,7 +32,7 @@ pub fn setup() -> Result<()> {
     let folder = env::current_dir()?.canonicalize()?;
 
     env::set_var("NOTA_FOLDER", &folder.to_str()
-        .with_context(|| format!("Failed to set env"))?);
+        .with_context(|| "Failed to set env")?);
 
     const MAGIC_FOLDER_NAME : &str = ".nota";
 
@@ -36,21 +42,21 @@ pub fn setup() -> Result<()> {
 
     debug!("NOTA folder {:?}", magic_folder);
     env::set_var("NOTA_MAGIC_FOLDER", magic_folder.to_str()
-        .with_context(|| format!("Failed to set env"))?);
+        .with_context(|| "Failed to set env")?);
 
     let mut list_path = PathBuf::from(&magic_folder);
     list_path.push("list");
     list_path.set_extension("nota");
     debug!("List Path {:?}", list_path);
     env::set_var("NOTA_LIST_PATH", list_path.to_str()
-        .with_context(|| format!("Failed to set env"))?);
+        .with_context(|| "Failed to set env")?);
 
     let mut index_path = PathBuf::from(&magic_folder);
     index_path.push("index");
     index_path.set_extension("nota");
     debug!("Index Path {:?}", index_path);
     env::set_var("NOTA_INDEX_PATH", index_path.to_str()
-        .with_context(|| format!("Failed to set env"))?);
+        .with_context(|| "Failed to set env")?);
 
     let mut configs_path = PathBuf::from(&magic_folder);
     configs_path.push("config");
@@ -58,7 +64,7 @@ pub fn setup() -> Result<()> {
 
     debug!("Configs Path {:?}", configs_path);
     env::set_var("NOTA_CONFIGS_PATH", configs_path.to_str()
-        .with_context(|| format!("Failed to set env"))?);
+        .with_context(|| "Failed to set env")?);
 
     //let mut export_folder = PathBuf::from(&nota_dir);
     //export_folder.push(magic_folder_name);

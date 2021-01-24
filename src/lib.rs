@@ -373,12 +373,19 @@ pub fn command_list() {
     index::list::list(&index);
 }
 
-pub fn command_export(input: Option<PathBuf>, outfolder: PathBuf) {
+pub fn command_export(input: Option<String>, outfolder: Option<String>, templates: Option<String>) -> Result<()> {
     debug!("Export command input {:?} outfolder {:?}", input, outfolder);
-    let index = index::list::load().expect("TODO remove expect");
 
-    exporter::exporter::init(&outfolder);
-    exporter::exporter::export_registered(&index);
+    let index = index::list::load().expect("Failed to read index");
+
+    let outfolder = outfolder.unwrap_or_else(|| "./export".to_string());
+    let templates = templates.unwrap_or_else(|| "./templates".to_string());
+
+    exporter::exporter::init(outfolder, templates)?;
+
+    exporter::exporter::export_registered(&index)?;
+
+    Ok(())
 }
 
 pub fn command_agenda() {
