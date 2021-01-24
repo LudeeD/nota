@@ -29,6 +29,10 @@ use std::io::{BufReader, Read, Write};
 use std::path::PathBuf;
 use std::time::SystemTime;
 
+use index::list::IndexEntry;
+use anyhow::Result;
+use std::convert::TryInto;
+
 pub fn init_envs() {
     util::envs::setup();
 }
@@ -111,6 +115,56 @@ pub fn command_new(new_nota_name: Option<&str>) {
     //    .unwrap();
 }
 
+fn new_update_nota(in_file: PathBuf, index : Vec<IndexEntry> ) -> Result<()> {
+    debug!("Check {:?} for update", in_file);
+
+    if !in_file.is_file() { return Err(anyhow!("Not a file! Not adding anything")) }
+
+    let input = File::open(&in_file)
+        .expect("Error opening file");
+    let modified_time = input
+        .metadata()
+        .expect("File with no metadata")
+        .modified()
+        .expect("File with no modified data");
+
+    let position = index::list::search_for_path_new(&index, &in_file);
+ 
+    let flag_update = match position{
+        Some(i) => {
+            let entry = index.get(i).unwrap();
+            let update = modified_time > entry.lastupdate;
+            update
+        },
+        None => { true }
+    };
+
+    if flag_update {
+        info!("Updating File {:?}", &in_file);
+        let reader = BufReader::new(input);
+        let digest = util::filesystem::sha256_digest(reader).expect("TODO remove expects | create digest");
+        let hex_digest = HEXUPPER.encode(digest.as_ref());
+        // No entry with that path
+        let info = parser::parse(&in_file).unwrap();
+        let info = info.as_ref();
+        
+        let updated_entry = index::list::IndexEntry {
+                    uid: 0,
+                    title: Some(String::from(&info.title)),
+                    path: in_file,
+                    digest: hex_digest,
+                    lastupdate: SystemTime::now(),
+                    lastexport: None,
+                    inlinks: Vec::new()
+        };
+
+        index::list::update_entry(index, updated_entry, position);
+    }
+
+    Ok(())
+}
+
+/*
 fn update_nota(in_file: PathBuf) {
     debug!("Update File {:?}", in_file);
 
@@ -136,11 +190,14 @@ fn update_nota(in_file: PathBuf) {
         Ok(entry) => {
             // There is already an entry with the path
             // but we need to update it if it was updated
+            debug!("entry found");
             let lastupdate = entry.lastupdate;
             existing_entry = Some(entry);
-            modified_time > lastupdate
+            let update = modified_time > lastupdate;
+            debug!("entry found : {:?}", update);
+            update
         }
-        Err(_) => true,
+        Err(_) => {debug!("no entry found"); true},
     };
 
     if update {
@@ -153,7 +210,11 @@ fn update_nota(in_file: PathBuf) {
         let info = info.as_ref();
 
         match existing_entry {
-            Some(entry) => {
+            Some(mut entry) => {
+                debug!("Estamos Aqui");
+                entry.title = Some(String::from(&info.title)); 
+                entry.digest = hex_digest;
+                entry.lastupdate = SystemTime::now();
                 index = index::list::update_nota_entry(index, entry).expect("Failed to update NOTA entry");
             },
             None => {
@@ -174,13 +235,12 @@ fn update_nota(in_file: PathBuf) {
         index::list::save(&index).expect("TODO remove expects | save index");
     }
 }
+*/
 
-fn add_nota(mut add_path: PathBuf) {
+fn add_nota(add_path: PathBuf) -> Vec<IndexEntry> {
+    if !add_path.is_file() { error!("Not a file! Not adding anything"); return vec![]; }
 
-    if !add_path.is_file() {
-        error!("Not a file! Not adding anything");
-        return;
-    }
+    let mut add_path = add_path.canonicalize().expect("Path canonicalization failed");
 
     debug!("{:?}", add_path);
     let nota_folder = util::envs::nota_folder();
@@ -198,16 +258,35 @@ fn add_nota(mut add_path: PathBuf) {
         add_path = new_file;
     }
 
-    update_nota(add_path);
+    info!("Adding File {:?}", &add_path);
+
+    let input = File::open(&add_path).expect("Error opening file");    
+    let reader = BufReader::new(input);
+    let digest = util::filesystem::sha256_digest(reader).expect("TODO remove expects | create digest");
+    let hex_digest = HEXUPPER.encode(digest.as_ref());
+    let info = parser::parse(&add_path).unwrap();
+    let info = info.as_ref();
+
+    let new_entry = index::list::IndexEntry {
+        uid: 0,
+        title: Some(String::from(&info.title)),
+        path: add_path,
+        digest: hex_digest,
+        lastupdate: SystemTime::now(),
+        lastexport: None,
+        inlinks: Vec::new()
+    };
+
+    vec![new_entry]
 }
 
-fn add_folder(in_folder: PathBuf) {
+fn add_folder(in_folder: PathBuf) -> Vec<IndexEntry>{
     // add each markdown file to nota
     let folder = match fs::read_dir(in_folder) {
         Ok(folder) => folder,
         Err(_) => {
             info!("Something Went terribly wrong");
-            return;
+            return vec!();
         }
     };
 
@@ -218,36 +297,74 @@ fn add_folder(in_folder: PathBuf) {
         .filter(|entry| entry.path().extension().unwrap() == "md")
         .map(|entry| entry.path().canonicalize())
         .filter_map(Result::ok)
-        .for_each(|entry| add_nota(entry));
+        .map(|entry| add_nota(entry))
+        .filter(|entry| entry.len() > 0)
+        .flatten()
+        .collect()
 }
 
 /// Move file to the NOTA location
 /// 
 pub fn command_add(add_path: PathBuf) {
-    if add_path.is_dir() {
-        add_folder(add_path);
-    }else {
-        add_nota(add_path);
+    let mut list = index::list::load().expect("Failed to load index");
+
+    let mut new_uid : u64 = list.len().try_into().unwrap();
+
+    let mut entries = match add_path.is_dir() {
+        true => add_folder(add_path),
+        false => add_nota(add_path)
+    };
+
+    for entry in entries.iter_mut() {
+        new_uid += 1;
+        entry.uid = new_uid;
     }
+
+    list.append(&mut entries);
+
+    index::list::save(&list).expect("Failed to save index after adding");
 }
 
 pub fn command_update() {
-    // TODO change instead of iterating over NOTA folder
-    // only update the already index NOTAs
-    let folder = match fs::read_dir(PathBuf::from(util::envs::nota_folder())) {
-        Ok(folder) => folder,
-        Err(_) => {
-            info!("Something Went terribly wrong");
-            return;
-        }
-    };
+    let mut list = index::list::load().expect("Failed to load index");
 
-    folder
-        .into_iter()
-        .filter_map(Result::ok)
-        .filter(|entry| entry.path().is_file())
-        .filter(|entry| entry.path().extension().unwrap() == "md")
-        .for_each(|entry| add_nota(entry.path()));
+    let mut remove_positions = vec![];
+    let mut index = 0;
+
+    for entry in list.iter_mut() {
+        let in_file = &entry.path;
+        let file = File::open(&in_file);
+        if file.is_err() {
+            remove_positions.push(index);
+        }else{
+            let input = file.expect("");
+            let modified_time = input
+                .metadata()
+                .expect("File with no metadata")
+                .modified()
+                .expect("File with no modified data");
+        
+            if modified_time > entry.lastupdate {
+                info!("Updating File {:?}", &in_file);
+                let reader = BufReader::new(input);
+                let digest = util::filesystem::sha256_digest(reader).expect("TODO remove expects | create digest");
+                let hex_digest = HEXUPPER.encode(digest.as_ref());
+                let info = parser::parse(&in_file).unwrap();
+                let info = info.as_ref();
+
+                entry.title = Some(String::from(&info.title));
+                entry.digest = hex_digest;
+                entry.lastupdate = SystemTime::now();
+            }
+        };
+        index = index+1;
+    }
+
+    for position in remove_positions {
+        list.remove(position);
+    }
+
+    index::list::save(&list).expect("Failed to save index after update");
 }
 
 pub fn command_list() {

@@ -74,25 +74,33 @@ pub fn list(index_to_list: &Vec<IndexEntry>) -> Result<()> {
     Ok(())
 }
 
-pub fn add_nota_entry(mut index: Vec<IndexEntry>, mut entry: IndexEntry) -> Result<Vec<IndexEntry>, ()> {
+pub fn update_entry(mut index: Vec<IndexEntry>, mut entry: IndexEntry, position: Option<usize> ) -> Vec<IndexEntry> {
 
-    let new_uid = index.len().try_into().unwrap();
-
-    entry.uid = new_uid;
-
-    index.push(entry);
-
-    Ok(index)
-}
-
-pub fn update_nota_entry(mut index: Vec<IndexEntry>, entry: IndexEntry) -> Result<Vec<IndexEntry>, ()> {
-
-    for i in 0..index.len() {
-        let entry = index.get(i).unwrap();
-        if entry.uid == entry.uid {
-            index.insert(i, entry.clone());
+    match position {
+        Some(i) => {
+            // We already know the location of the entry
+            let _ = std::mem::replace(&mut index[i], entry);
+        },
+        None => {
+            let new_uid = index.len().try_into().unwrap();
+            entry.uid = new_uid;
+            index.push(entry);
         }
     }
+
+    index
+}
+
+pub fn update_nota_entry(mut index: Vec<IndexEntry>, mut entry: IndexEntry) -> Result<Vec<IndexEntry>, ()> {
+
+    match index.iter().position(|ref p| p.uid == entry.uid) {
+        Some(i) => {}
+        None => {
+            let new_uid = index.len().try_into().unwrap();
+            entry.uid = new_uid;
+            index.push(entry);
+        }
+    };
 
     Ok(index)
 }
@@ -118,6 +126,10 @@ pub fn search_for_uid(index: & Vec<IndexEntry>, uid_to_search: u64) -> Result<In
 
 }
 
+pub fn search_for_path_new(index: & Vec<IndexEntry>, path_to_search: &PathBuf) -> Option<usize> {
+    index.iter().position(|ref p| p.path == *path_to_search)
+}
+
 pub fn search_for_path(index: & Vec<IndexEntry>, path_to_search: &PathBuf) -> Result<IndexEntry> {
 
     let mut entry : Result<IndexEntry> = Err(anyhow!("No index entry"));
@@ -127,6 +139,8 @@ pub fn search_for_path(index: & Vec<IndexEntry>, path_to_search: &PathBuf) -> Re
             entry = Ok(elem.clone());
         }
     }
+
+    debug!("{:?}", entry);
 
     entry
 }
