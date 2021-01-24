@@ -1,13 +1,11 @@
 #[macro_use]
 extern crate log;
-#[macro_use]
 extern crate serde;
 extern crate bincode;
 extern crate comrak;
 extern crate handlebars;
 extern crate pulldown_cmark;
 extern crate walkdir;
-
 #[macro_use]
 extern crate anyhow;
 
@@ -25,7 +23,7 @@ mod util;
 use data_encoding::HEXUPPER;
 use std::fs;
 use std::fs::File;
-use std::io::{BufReader, Read, Write};
+use std::io::{BufReader};
 use std::path::PathBuf;
 use std::time::SystemTime;
 
@@ -34,7 +32,7 @@ use anyhow::Result;
 use std::convert::TryInto;
 
 pub fn init_envs() {
-    util::envs::setup();
+    util::envs::setup().expect("This should not fail");
 }
 
 pub fn assert_nota_folder() -> bool {
@@ -42,7 +40,7 @@ pub fn assert_nota_folder() -> bool {
 }
 
 pub fn read_confs() {
-    configs::read();
+    configs::read().expect("This should not fail");
 }
 
 pub fn demo() {
@@ -58,11 +56,9 @@ pub fn command_init() -> bool {
 
     if path.exists() && path.is_dir() {
         return false;
-    } else {
-        if let Some(path) = path.to_str() {
+    } else if let Some(path) = path.to_str() {
             info!("Magic NOTA folder in - {:?}", path);
             util::filesystem::create_folder(path).expect("This should not fail 😢")
-        };
     }
 
     // Creates a config file
@@ -81,161 +77,12 @@ pub fn command_init() -> bool {
         Err(e) => error!("Index List not ready {}", e),
     }
 
-    return true;
+    true
 }
 
-pub fn command_new(new_nota_name: Option<&str>) {
+pub fn command_new(_new_nota_name: Option<&str>) {
 
-    //let utc_time : &str = &Utc::now().to_string();
-
-    //let title = match new_nota_name {
-    //    Some(title) => { title },
-    //    None => { utc_time }
-    //};
-
-    //// Try and add the new nota to the database
-    //debug!("Adding NOTA to the db. title: {} time: {:?}", title, utc_time);
-    //let new_entry = IndexEntry::new(title.to_string(), utc_time.to_string());
-    //database::add_index_entry(new_entry).expect("Error adding Entry");
-
-    //// Get the respective ID
-    //let id = database::get_uid_from_title(title).unwrap();
-    //debug!("NOTA added to the db with id {}", id);
-
-    //let mut nota_path = PathBuf::from(&util::main_folder());
-    //nota_path.push(id.to_string());
-    //nota_path.set_extension("md");
-
-    //let content = format!("# {}\n\n\n{} {}", title, REVERSE_LINKS_HEADING_LEVEL, REVERSE_LINKS_TEXT);
-
-    //filesystem::create_file(nota_path.to_str().unwrap(), Some(&content))
-    //    .map_err(|err| {
-    //        error!("Error creating a new NOTA {}", err)
-    //    })
-    //    .unwrap();
 }
-
-fn new_update_nota(in_file: PathBuf, index : Vec<IndexEntry> ) -> Result<()> {
-    debug!("Check {:?} for update", in_file);
-
-    if !in_file.is_file() { return Err(anyhow!("Not a file! Not adding anything")) }
-
-    let input = File::open(&in_file)
-        .expect("Error opening file");
-    let modified_time = input
-        .metadata()
-        .expect("File with no metadata")
-        .modified()
-        .expect("File with no modified data");
-
-    let position = index::list::search_for_path_new(&index, &in_file);
- 
-    let flag_update = match position{
-        Some(i) => {
-            let entry = index.get(i).unwrap();
-            let update = modified_time > entry.lastupdate;
-            update
-        },
-        None => { true }
-    };
-
-    if flag_update {
-        info!("Updating File {:?}", &in_file);
-        let reader = BufReader::new(input);
-        let digest = util::filesystem::sha256_digest(reader).expect("TODO remove expects | create digest");
-        let hex_digest = HEXUPPER.encode(digest.as_ref());
-        // No entry with that path
-        let info = parser::parse(&in_file).unwrap();
-        let info = info.as_ref();
-        
-        let updated_entry = index::list::IndexEntry {
-                    uid: 0,
-                    title: Some(String::from(&info.title)),
-                    path: in_file,
-                    digest: hex_digest,
-                    lastupdate: SystemTime::now(),
-                    lastexport: None,
-                    inlinks: Vec::new()
-        };
-
-        index::list::update_entry(index, updated_entry, position);
-    }
-
-    Ok(())
-}
-
-/*
-fn update_nota(in_file: PathBuf) {
-    debug!("Update File {:?}", in_file);
-
-    if !in_file.is_file() {
-        error!("Not a file! Not adding anything");
-        return;
-    }
-
-    let mut index = index::list::load()
-        .expect("Failed to Load the Index"); 
-    let input = File::open(&in_file)
-        .expect("Error opening file");
-    let modified_time = input
-        .metadata()
-        .expect("File with no metadata")
-        .modified()
-        .expect("File with no modified data");
-
-    let mut existing_entry = None;
-
-    // Check if file exists and if needs to be updates
-    let update = match index::list::search_for_path(&index, &in_file) {
-        Ok(entry) => {
-            // There is already an entry with the path
-            // but we need to update it if it was updated
-            debug!("entry found");
-            let lastupdate = entry.lastupdate;
-            existing_entry = Some(entry);
-            let update = modified_time > lastupdate;
-            debug!("entry found : {:?}", update);
-            update
-        }
-        Err(_) => {debug!("no entry found"); true},
-    };
-
-    if update {
-        info!("Updating File {:?}", &in_file);
-        let reader = BufReader::new(input);
-        let digest = util::filesystem::sha256_digest(reader).expect("TODO remove expects | create digest");
-        let hex_digest = HEXUPPER.encode(digest.as_ref());
-        // No entry with that path
-        let info = parser::parse(&in_file).unwrap();
-        let info = info.as_ref();
-
-        match existing_entry {
-            Some(mut entry) => {
-                debug!("Estamos Aqui");
-                entry.title = Some(String::from(&info.title)); 
-                entry.digest = hex_digest;
-                entry.lastupdate = SystemTime::now();
-                index = index::list::update_nota_entry(index, entry).expect("Failed to update NOTA entry");
-            },
-            None => {
-                let new_entry = index::list::IndexEntry {
-                    uid: 0,
-                    title: Some(String::from(&info.title)),
-                    path: in_file,
-                    digest: hex_digest,
-                    lastupdate: SystemTime::now(),
-                    lastexport: None,
-                    inlinks: Vec::new()
-                };
-
-                index = index::list::add_nota_entry(index, new_entry).expect("Failed to add NOTA entry");
-            }
-        };
-
-        index::list::save(&index).expect("TODO remove expects | save index");
-    }
-}
-*/
 
 fn add_nota(add_path: PathBuf) -> Vec<IndexEntry> {
     if !add_path.is_file() { error!("Not a file! Not adding anything"); return vec![]; }
@@ -297,8 +144,8 @@ fn add_folder(in_folder: PathBuf) -> Vec<IndexEntry>{
         .filter(|entry| entry.path().extension().unwrap() == "md")
         .map(|entry| entry.path().canonicalize())
         .filter_map(Result::ok)
-        .map(|entry| add_nota(entry))
-        .filter(|entry| entry.len() > 0)
+        .map(add_nota)
+        .filter(|entry| !entry.is_empty())
         .flatten()
         .collect()
 }
@@ -329,9 +176,8 @@ pub fn command_update() {
     let mut list = index::list::load().expect("Failed to load index");
 
     let mut remove_positions = vec![];
-    let mut index = 0;
 
-    for entry in list.iter_mut() {
+    for (index, entry) in list.iter_mut().enumerate() {
         let in_file = &entry.path;
         let file = File::open(&in_file);
         if file.is_err() {
@@ -357,7 +203,6 @@ pub fn command_update() {
                 entry.lastupdate = SystemTime::now();
             }
         };
-        index = index+1;
     }
 
     for position in remove_positions {
@@ -370,7 +215,7 @@ pub fn command_update() {
 pub fn command_list() {
     let index = index::list::load().expect("TODO remove expect");
 
-    index::list::list(&index);
+    index::list::list(&index).expect("TODO remove expect");
 }
 
 pub fn command_export(input: Option<String>, outfolder: Option<String>, templates: Option<String>) -> Result<()> {
@@ -381,9 +226,9 @@ pub fn command_export(input: Option<String>, outfolder: Option<String>, template
     let outfolder = outfolder.unwrap_or_else(|| "./export".to_string());
     let templates = templates.unwrap_or_else(|| "./templates".to_string());
 
-    exporter::exporter::init(outfolder, templates)?;
+    exporter::init(outfolder, templates)?;
 
-    exporter::exporter::export_registered(&index)?;
+    exporter::export_registered(&index)?;
 
     Ok(())
 }

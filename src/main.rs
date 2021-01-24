@@ -1,4 +1,3 @@
-#[macro_use]
 extern crate clap;
 use clap::Clap;
 
@@ -38,7 +37,7 @@ struct InitCommand{
     /// The folder where you want to initialize NOTA
     /// (defaults to create in the current folder)
     #[clap(long)]
-    folder: String
+    _folder: String
 }
 
 #[derive(Clap)]
@@ -47,7 +46,7 @@ struct NewCommand{
     /// Name to be provided to the new NOTA
     /// (default: using the current timestamp)
     #[clap(long)]
-    name: bool
+    _name: bool
 }
 
 #[derive(Clap)]
@@ -73,7 +72,7 @@ struct ListCommand{
 struct UpdateCommand{
     /// clears the index and re adds everything
     #[clap(long)]
-    hard: bool
+    _hard: bool
 }
 
 /// Book generation commands
@@ -106,7 +105,7 @@ fn process_command_init() {
     std::process::exit(0);
 }
 
-fn process_command_new(args: NewCommand) {
+fn process_command_new(_args: NewCommand) {
     assert_nota_folder();
     //if let Some(matches_new) = matches.subcommand_matches("new") {
     //    let new_nota_name = matches_new.value_of("NAME").unwrap();
@@ -122,7 +121,7 @@ fn process_command_add(args: AddCommand){
     std::process::exit(0);
 }
 
-fn process_command_list(args: ListCommand){
+fn process_command_list(_args: ListCommand){
     assert_nota_folder();
 
     nota::command_list(); 
@@ -130,7 +129,7 @@ fn process_command_list(args: ListCommand){
     std::process::exit(0);
 }
 
-fn process_command_update(args: UpdateCommand){
+fn process_command_update(_args: UpdateCommand){
     debug!("Update Command");
     assert_nota_folder();
 

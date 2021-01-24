@@ -1,7 +1,6 @@
 use std::fs::{File, read, create_dir};
 use std::io::prelude::*;
 use std::io::Error;
-use std::path::{PathBuf};
 use ring::digest::{Context, Digest, SHA256};
 
 use anyhow::Result;
@@ -29,7 +28,7 @@ pub fn read_bytes(path: &str) -> Result<Vec<u8>, Error> {
     Ok(read(path)?)
 }
 
-pub fn write_bytes(path: &str, bytes: &Vec<u8>) -> Result<(), Error>{
+pub fn write_bytes(path: &str, bytes: &[u8]) -> Result<(), Error>{
     debug!("write bytes {:?}", path);
     File::create(path)?.write_all(bytes)?;
     Ok(())

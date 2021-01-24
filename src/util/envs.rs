@@ -23,8 +23,6 @@ pub fn template_folder() -> String { env::var("NOTA_TEMPLATE_FOLDER").expect("th
 
 pub fn list_path() -> String { env::var("NOTA_LIST_PATH").expect("set_envs() should ensures this exist")}
 
-pub fn index_path() -> String { env::var("NOTA_INDEX_PATH").expect("set_envs() should ensures this exist") }
-
 pub fn configs_path() -> String { env::var("NOTA_CONFIGS_PATH").expect("set_envs() should ensures this exist") }
 
 pub fn setup() -> Result<()> {
@@ -79,7 +77,7 @@ pub fn setup() -> Result<()> {
 
     debug!("Setting NOTA_LINKS_FOLDER env");
     env::set_var("NOTA_LINKS_FOLDER", links_folder.to_str()
-        .with_context(|| format!("Failed to set env"))?);
+        .with_context(|| "Failed to set env")?);
 
-    return Ok(())
+    Ok(())
 }
