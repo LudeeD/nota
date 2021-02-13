@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use std::convert::TryInto;
 use std::fs::File;
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{PathBuf, Path};
 use std::time::SystemTime;
 
 // NOTA imports
@@ -21,13 +21,16 @@ pub fn init(export_folder: String, template_folder: String) -> Result<()> {
     info!("Searching templates in {:?}", template_folder);
 
     util::envs::set_export_folder(&export_folder);
-    util::filesystem::create_folder(&export_folder)?;
+    if ! Path::new(&export_folder).exists() {
+        util::filesystem::create_folder(&export_folder)?;
+    }
     util::envs::set_template_folder(&template_folder);
 
     Ok(())
 }
 
 pub fn export_registered(list: &[IndexEntry]) -> Result<()> {
+    debug!("list {:?}", list);
     let mut templates_nota = PathBuf::from(util::envs::template_folder());
     templates_nota.push("nota.html");
 
@@ -40,6 +43,7 @@ pub fn export_registered(list: &[IndexEntry]) -> Result<()> {
         .expect("damn");
 
     for item in list {
+        debug!("Item {:?}", item);
         let item_path = item.path.clone();
         let original_file = File::open(&item_path)?;
         let metadata = original_file.metadata()?;

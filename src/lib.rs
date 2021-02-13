@@ -96,7 +96,7 @@ fn add_nota(add_path: PathBuf) -> Vec<IndexEntry> {
     if ! add_path.starts_with(&nota_folder) {
         debug!("File not in NOTA folder, copying...");
         let file_name = add_path.file_name().expect("File with no name?"); 
-        let mut new_file = PathBuf::from(nota_folder);
+        let mut new_file = PathBuf::from(&nota_folder);
         new_file.push(file_name);
         new_file.set_extension("md");
         File::create(&new_file).expect("Failed to create new file");
@@ -114,10 +114,12 @@ fn add_nota(add_path: PathBuf) -> Vec<IndexEntry> {
     let info = parser::parse(&add_path).unwrap();
     let info = info.as_ref();
 
+    let based_path = add_path.strip_prefix(nota_folder).expect("TODO remove");
+
     let new_entry = index::list::IndexEntry {
         uid: 0,
         title: Some(String::from(&info.title)),
-        path: add_path,
+        path: based_path.to_path_buf(),
         digest: hex_digest,
         lastupdate: SystemTime::now(),
         lastexport: None,

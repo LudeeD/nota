@@ -22,11 +22,9 @@ pub fn init() -> Result<()> {
 
     if path.exists(){
         info!("Configs file (.notaconfig) already exists");
-    } else {
-        if let Some(path) = path.to_str() {
+    } else if let Some(path) = path.to_str() {
             info!("Creating configs file in - {:?}", path);
             util::filesystem::create_file(path, None).expect("This should not fail :(")
-        };
     }
 
     Ok(())
