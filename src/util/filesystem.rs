@@ -46,6 +46,5 @@ pub fn sha256_digest<R: Read>(mut reader: R) -> Result<Digest> {
         }
         context.update(&buffer[..count]);
     }
-
     Ok(context.finish())
 }
