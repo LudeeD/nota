@@ -9,7 +9,7 @@ use crate::util::{envs, filesystem};
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct IndexEntry {
     pub uid: u64,
-    pub title: Option<String>,
+    pub title: String,
     pub path: PathBuf,
     pub digest: String,
     pub lastupdate: SystemTime,

@@ -16,6 +16,7 @@ pub struct ParsedNota {
     pub links: Vec<String>,
 }
 
+
 pub fn parse_to_html(in_path: PathBuf) -> Result<String> {
     debug!("parse to HTML file {:?}", in_path);
 

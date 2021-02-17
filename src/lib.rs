@@ -8,6 +8,7 @@ extern crate pulldown_cmark;
 extern crate walkdir;
 #[macro_use]
 extern crate anyhow;
+extern crate sled;
 
 mod configs;
 mod exporter;
@@ -24,12 +25,144 @@ use data_encoding::HEXUPPER;
 use std::fs;
 use std::fs::File;
 use std::io::{BufReader};
-use std::path::PathBuf;
+use std::path::{ Path, PathBuf};
 use std::time::SystemTime;
 
 use index::list::IndexEntry;
 use anyhow::Result;
 use std::convert::TryInto;
+
+use serde::{Deserialize, Serialize};
+use pickledb::{PickleDb, PickleDbDumpPolicy, SerializationMethod};
+use sha1::{Sha1, Digest};
+
+use std::env;
+
+const SLED_ERROR : &str = "sled error";
+const BINCODE_ERROR : &str = "bincode error";
+const ENVS_ERROR : &str = "envs error";
+const OTHER_ERROR : &str = "error";
+
+use pulldown_cmark::{Parser, Event, Tag::Link, html};
+use std::io::Read;
+
+use handlebars::Handlebars;
+use std::io::prelude::*;
+use std::collections::BTreeMap;
+
+pub fn generate_nota(handlebars: &handlebars::Handlebars, db: &sled::Db, output: &PathBuf, nota: &PathBuf) {
+    info!("Parsing {:?} to HTML", nota);
+
+    let buffer: String = fs::read_to_string(&nota).expect("io error");
+    let parser = Parser::new(&buffer);
+    let mut html_output = String::new();
+    html::push_html(&mut html_output, parser);
+
+
+    let mut data = BTreeMap::new();
+    data.insert("body".to_string(), html_output);
+    let dt = SystemTime::now();
+    data.insert("lastmodified".to_string(), format!("{:?}", dt));
+
+    let mut output_file = File::create(output).unwrap();
+
+    output_file.write_all(handlebars.render("entry", &data).unwrap().as_bytes()).expect(OTHER_ERROR);
+}
+
+pub fn parse_links(path: &PathBuf,  link_tree: &sled::Tree) {
+    info!("Parsing for links {:?}", &path);
+    let mut links = Vec::new();
+
+    let mut f = File::open(path).expect("io error");
+    let mut buffer = String::new();
+
+    f.read_to_string(&mut buffer).expect("io error");
+    let parser = Parser::new(&buffer);
+
+    // TODO: collapse this 2 passes into only 1
+    let _parser = parser.for_each(|event| 
+        if let Event::Start(Link(_link_type, destination, _title)) = event {
+            let path = PathBuf::from(destination.as_ref()).canonicalize();
+            if let Ok(path) = path {
+                links.push(path);
+            }
+        }
+    );
+
+    for link_path in &links {
+        let mut hasher = Sha1::new();
+        hasher.update(link_path.to_str().unwrap());
+        let path_hash = hasher.finalize();
+        info!("{:?} -> {:?}", path, link_path);
+        let _oldvalue = link_tree.fetch_and_update(&path_hash, |value| {
+            let new_value = match value {
+                Some(value) => {
+                    let mut decoded: Vec<PathBuf> = bincode::deserialize(&value[..]).unwrap();
+                    let already_present = decoded.binary_search(link_path);
+
+                    if already_present.is_err() {
+                        decoded.push(link_path.to_path_buf());
+                    }
+
+                    decoded
+                },
+                None => vec![link_path.to_path_buf()]
+            };
+            let bytes = bincode::serialize(&new_value).expect(BINCODE_ERROR);
+            Some(bytes)
+        });
+    };
+}
+
+pub fn index_nota(path: &PathBuf, db: &sled::Db) {
+    let main_tree = db.open_tree("main").expect("SLED_ERROR");
+    let link_tree = db.open_tree("link").expect("SLED_ERROR");
+
+    let mut hasher = Sha1::new();
+    hasher.update(path.to_str().unwrap());
+    let path_hash = hasher.finalize();
+
+    let current_time = SystemTime::now();
+    let bytes = bincode::serialize(&current_time).expect(BINCODE_ERROR);
+    main_tree.insert(&path_hash, bytes).expect(SLED_ERROR);
+
+    parse_links(path, &link_tree);
+}
+
+pub fn generate() {
+
+    let path = env::current_dir().expect(ENVS_ERROR);
+
+    let mut full_path = path.canonicalize().expect(OTHER_ERROR);
+    full_path.push(".nota");
+    debug!("Open sled {:?}", &full_path);
+    let tree = sled::open(full_path.to_str().unwrap()).expect(SLED_ERROR);
+    full_path.pop();
+
+    let folder = fs::read_dir(full_path).expect(OTHER_ERROR);
+    debug!("Analyze folder {:?}", &folder);
+
+    let entries : Vec<PathBuf> = folder
+        .into_iter()
+        .filter_map(Result::ok)
+        .filter(|entry| { 
+            entry.path().is_file() && 
+            entry.path().extension().is_some() && 
+            entry.path().extension().unwrap() == "md" })
+        .map(|entry| entry.path().canonicalize())
+        .filter_map(Result::ok)
+        .collect();
+    
+    for entry_path in &entries {
+        index_nota(entry_path, &tree);
+    }
+
+    for entry_path in &entries {
+        generate_nota(entry_path, &tree)
+    }
+
+    tree.flush().expect(SLED_ERROR);
+}
 
 pub fn init_envs() {
     util::envs::setup().expect("This should not fail");
@@ -49,33 +182,24 @@ pub fn demo() {
 
 /// The init command used by the CLI
 /// the command will initialize a NOTA folder in the folder defined with the environment variable NOTA_FOLDER
-pub fn command_init() -> bool {
+pub fn command_init(mut init_path: PathBuf) -> bool {
     // Create NOTA main Folder
-    let path = util::envs::magic_folder();
-    let path = PathBuf::from(&path);
+    init_path.push(".nota");
 
-    if path.exists() && path.is_dir() {
-        return false;
-    } else if let Some(path) = path.to_str() {
-            info!("Magic NOTA folder in - {:?}", path);
-            util::filesystem::create_folder(path).expect("This should not fail 😢")
-    }
+    if fs::create_dir(init_path.as_path()).is_err() { return false }
 
-    // Creates a config file
-    match configs::init() {
-        Ok(_) => info!("Configurations ready!"),
-        Err(e) => error!("Configurations not ready {}", e),
-    }
+    init_path.push("nota.db");
+    let tree = sled::open(init_path.to_str().unwrap()).expect("open");
+    tree.insert("uid", "0");
+    tree.flush();
 
-    match links::init() {
-        Ok(_) => info!("Links ready!"),
-        Err(e) => error!("Links not ready {}", e),
-    }
+    init_path.pop();
+    init_path.push("links");
+    if fs::create_dir(init_path.as_path()).is_err() { return false }
 
-    match index::list::init() {
-        Ok(_) => info!("Index List ready!"),
-        Err(e) => error!("Index List not ready {}", e),
-    }
+    init_path.pop();
+    init_path.push("cuckoos");
+    if fs::create_dir(init_path.as_path()).is_err() { return false }
 
     true
 }
@@ -83,6 +207,21 @@ pub fn command_init() -> bool {
 pub fn command_new(_new_nota_name: Option<&str>) {
 
 }
+
+
+
+
+fn add_nota_to_index(based_path: PathBuf, db: &sled::Db){
+    let mut hasher = Sha1::new();
+    hasher.update(&based_path.to_str().unwrap());
+    let path_hash = hasher.finalize();
+
+    let main_tree = db.open_tree("main").expect(SLED_ERROR);
+
+
+}
+
+
 
 fn add_nota(add_path: PathBuf) -> Vec<IndexEntry> {
     if !add_path.is_file() { error!("Not a file! Not adding anything"); return vec![]; }
@@ -118,7 +257,7 @@ fn add_nota(add_path: PathBuf) -> Vec<IndexEntry> {
 
     let new_entry = index::list::IndexEntry {
         uid: 0,
-        title: Some(String::from(&info.title)),
+        title: String::from(&info.title),
         path: based_path.to_path_buf(),
         digest: hex_digest,
         lastupdate: SystemTime::now(),
@@ -151,27 +290,15 @@ fn add_folder(in_folder: PathBuf) -> Vec<IndexEntry>{
         .flatten()
         .collect()
 }
-
 /// Move file to the NOTA location
 /// 
 pub fn command_add(add_path: PathBuf) {
-    let mut list = index::list::load().expect("Failed to load index");
 
-    let mut new_uid : u64 = list.len().try_into().unwrap();
-
-    let mut entries = match add_path.is_dir() {
+    let entries = match add_path.is_dir() {
         true => add_folder(add_path),
         false => add_nota(add_path)
     };
 
-    for entry in entries.iter_mut() {
-        new_uid += 1;
-        entry.uid = new_uid;
-    }
-
-    list.append(&mut entries);
-
-    index::list::save(&list).expect("Failed to save index after adding");
 }
 
 pub fn command_update() {
@@ -200,7 +327,7 @@ pub fn command_update() {
                 let info = parser::parse(&in_file).unwrap();
                 let info = info.as_ref();
 
-                entry.title = Some(String::from(&info.title));
+                entry.title = String::from(&info.title);
                 entry.digest = hex_digest;
                 entry.lastupdate = SystemTime::now();
             }
