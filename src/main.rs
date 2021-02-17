@@ -1,14 +1,13 @@
 extern crate clap;
 use clap::Clap;
 
-#[macro_use]
-extern crate log;
-
+#[macro_use] extern crate log;
 extern crate simple_logger;
 
+use std::env;
 use std::path::{PathBuf};
 
-const VERSION: &str = "0.2.1";
+const VERSION: &str = "0.3.0";
 const AUTHOR:  &str = "Luís Sobral Silva <luiscomsnofim@gmail.com>";
 
 #[derive(Clap)]
@@ -28,7 +27,8 @@ enum SubCommand {
     Add(AddCommand),
     List(ListCommand),
     Update(UpdateCommand),
-    Export(ExportCommand)
+    Export(ExportCommand),
+    Generate(GenerateCommand)
 }
 
 #[derive(Clap)]
@@ -37,7 +37,7 @@ struct InitCommand{
     /// The folder where you want to initialize NOTA
     /// (defaults to create in the current folder)
     #[clap(long)]
-    _folder: String
+    folder: Option<String>
 }
 
 #[derive(Clap)]
@@ -90,6 +90,12 @@ struct ExportCommand{
     templates: Option<String>,
 }
 
+#[derive(Clap, Debug)]
+#[clap(version = VERSION, author = AUTHOR)]
+struct GenerateCommand{
+
+}
+
 fn assert_nota_folder() {
     if ! nota::assert_nota_folder() {
         info!("Not a NOTA folder, stoping...");
@@ -97,11 +103,24 @@ fn assert_nota_folder() {
     }
 }
 
-fn process_command_init() {
-    if ! nota::command_init() {
+fn process_command_init(args: InitCommand) {
+
+    let path = match args.folder {
+        Some(folder) => {
+            PathBuf::from(folder)
+        },
+        None => {
+            env::current_dir().expect("No current dir ?")
+        }
+    };
+
+    info!("Initializing NOTA in {:?}", path);
+
+    if ! nota::command_init(path) {
         info!("It was not possible to initialize NOTA folder, maybe this is a NOTA folder already");
         std::process::exit(1);
     }
+
     std::process::exit(0);
 }
 
@@ -162,9 +181,9 @@ fn main() {
 
     debug!("Logger initialized");
 
-    //nota::demo();
+    // nota::demo();
 
-    nota::init_envs();
+    // nota::init_envs();
 
     let subcommand = match opts.subcmd {
         Some(subcommand) => subcommand,
@@ -178,8 +197,8 @@ fn main() {
         SubCommand::Export(args) => {
             process_command_export(args);
         },
-        SubCommand::Init(_args) => {
-            process_command_init();
+        SubCommand::Init(args) => {
+            process_command_init(args);
         },
         SubCommand::List(args) => {
             process_command_list(args);
@@ -189,6 +208,9 @@ fn main() {
         },
         SubCommand::Update(args) => {
             process_command_update(args);
+        },
+        SubCommand::Generate(args) => {
+            nota::generate()
         }
     }
 

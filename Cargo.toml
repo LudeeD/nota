@@ -23,6 +23,11 @@ regex = "1"
 chrono = "0.4"
 ring = "0.16.15"
 data-encoding = "2.3.0"
+cuckoofilter = "0.5.0"
+pickledb = "0.4.1"
+sled = "0.34.6"
+sha-1 = "0.9.3"
+
 
 [dependencies.rusqlite]
 version = "0.24.2"
