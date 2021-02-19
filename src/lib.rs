@@ -46,7 +46,7 @@ const OTHER_ERROR : &str = "error";
 use pulldown_cmark::{Parser, Event, Tag::Link, html};
 use std::io::Read;
 
-use handlebars::Handlebars;
+use handlebars::{to_json, Handlebars};
 use std::io::prelude::*;
 use std::collections::BTreeMap;
 
@@ -60,9 +60,26 @@ pub fn generate_nota(handlebars: &handlebars::Handlebars, db: &sled::Db, output:
 
 
     let mut data = BTreeMap::new();
-    data.insert("body".to_string(), html_output);
+    data.insert("body".to_string(), to_json(html_output));
     let dt = SystemTime::now();
-    data.insert("lastmodified".to_string(), format!("{:?}", dt));
+    data.insert("lastmodified".to_string(), to_json(format!("{:?}",dt)));
+
+    let link_tree = db.open_tree("link").expect(SLED_ERROR);
+    let mut hasher = Sha1::new();
+    hasher.update(nota.to_str().unwrap());
+    let path_hash = hasher.finalize();
+
+    match link_tree.get(path_hash).expect(SLED_ERROR) {
+        Some(value) => {
+            let decoded: Vec<PathBuf> = bincode::deserialize(&value[..]).unwrap();
+            let links: Vec<String> = decoded.into_iter().map(|value| format!("<a href=\"{:?}\">{:?}</a>", value, value)).collect();
+            data.insert("links".to_string(), to_json(links));
+        },
+        None => {
+            data.insert("links".to_string(), to_json(vec!["<a>No links</a>".to_string()]));
+        }
+    }
+
 
     let mut output_file = File::create(output).unwrap();
 
@@ -71,8 +88,6 @@ pub fn generate_nota(handlebars: &handlebars::Handlebars, db: &sled::Db, output:
 
 pub fn parse_links(path: &PathBuf,  link_tree: &sled::Tree) {
     info!("Parsing for links {:?}", &path);
-    let mut links = Vec::new();
-
     let mut f = File::open(path).expect("io error");
     let mut buffer = String::new();
 
@@ -82,36 +97,38 @@ pub fn parse_links(path: &PathBuf,  link_tree: &sled::Tree) {
     // TODO: collapse this 2 passes into only 1
     let _parser = parser.for_each(|event| 
         if let Event::Start(Link(_link_type, destination, _title)) = event {
-            let path = PathBuf::from(destination.as_ref()).canonicalize();
-            if let Ok(path) = path {
-                links.push(path);
+            let dest = PathBuf::from(destination.as_ref());
+            //let key_entry = path.clone().canonicalize();
+
+            match dest.clone().canonicalize() {
+                Ok(dest_canon) => {
+                    let mut hasher = Sha1::new();
+                    hasher.update(dest_canon.to_str().unwrap());
+                    let key = hasher.finalize();
+                    info!("{:?} -> {:?} [{:?}]", path, &dest, &dest_canon);
+
+                    let _oldvalue = link_tree.fetch_and_update(&key, |value| {
+                        let new_value = match value {
+                            Some(value) => {
+                                let mut decoded: Vec<PathBuf> = bincode::deserialize(&value[..]).unwrap();
+                                let already_present = decoded.binary_search(&dest);
+                                if already_present.is_err() {
+                                    decoded.push(dest.to_path_buf());
+                                }
+                                decoded
+                            },
+                            None => vec![dest.to_path_buf()]
+                        };
+
+                        let bytes = bincode::serialize(&new_value).expect(BINCODE_ERROR);
+                        Some(bytes)
+                    });
+                },
+                Err(_) => ()
             }
         }
     );
 
-    for link_path in &links {
-        let mut hasher = Sha1::new();
-        hasher.update(link_path.to_str().unwrap());
-        let path_hash = hasher.finalize();
-        info!("{:?} -> {:?}", path, link_path);
-        let _oldvalue = link_tree.fetch_and_update(&path_hash, |value| {
-            let new_value = match value {
-                Some(value) => {
-                    let mut decoded: Vec<PathBuf> = bincode::deserialize(&value[..]).unwrap();
-                    let already_present = decoded.binary_search(link_path);
-
-                    if already_present.is_err() {
-                        decoded.push(link_path.to_path_buf());
-                    }
-
-                    decoded
-                },
-                None => vec![link_path.to_path_buf()]
-            };
-            let bytes = bincode::serialize(&new_value).expect(BINCODE_ERROR);
-            Some(bytes)
-        });
-    };
 }
 
 pub fn index_nota(path: &PathBuf, db: &sled::Db) {
@@ -139,7 +156,7 @@ pub fn generate() {
     let tree = sled::open(full_path.to_str().unwrap()).expect(SLED_ERROR);
     full_path.pop();
 
-    let folder = fs::read_dir(full_path).expect(OTHER_ERROR);
+    let folder = fs::read_dir(&full_path).expect(OTHER_ERROR);
     debug!("Analyze folder {:?}", &folder);
 
     let entries : Vec<PathBuf> = folder
@@ -157,11 +174,26 @@ pub fn generate() {
         index_nota(entry_path, &tree);
     }
 
+    full_path.push("nota.html");
+    let mut handlebars = Handlebars::new();
+    handlebars
+        .register_template_file("entry", &full_path)
+        .expect("damn");
+
+    full_path.pop();
+    full_path.push("output");
     for entry_path in &entries {
-        generate_nota(entry_path, &tree)
-    }
+        let filename = entry_path.file_name().unwrap();
+
+        let mut output_file = full_path.clone();
+        output_file.push(filename);
+        output_file.set_extension("html");
+
+        generate_nota(&handlebars, &tree, &output_file, entry_path);
+    };
 
     tree.flush().expect(SLED_ERROR);
+    tree.clear().expect(SLED_ERROR);
 }
 
 pub fn init_envs() {
