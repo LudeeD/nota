@@ -4,9 +4,6 @@ use clap::Clap;
 #[macro_use] extern crate log;
 extern crate simple_logger;
 
-use std::env;
-use std::path::{PathBuf};
-
 const VERSION: &str = "0.3.0";
 const AUTHOR:  &str = "Luís Sobral Silva <luiscomsnofim@gmail.com>";
 
@@ -96,77 +93,6 @@ struct GenerateCommand{
 
 }
 
-fn assert_nota_folder() {
-    if ! nota::assert_nota_folder() {
-        info!("Not a NOTA folder, stoping...");
-        std::process::exit(1);
-    }
-}
-
-fn process_command_init(args: InitCommand) {
-
-    let path = match args.folder {
-        Some(folder) => {
-            PathBuf::from(folder)
-        },
-        None => {
-            env::current_dir().expect("No current dir ?")
-        }
-    };
-
-    info!("Initializing NOTA in {:?}", path);
-
-    if ! nota::command_init(path) {
-        info!("It was not possible to initialize NOTA folder, maybe this is a NOTA folder already");
-        std::process::exit(1);
-    }
-
-    std::process::exit(0);
-}
-
-fn process_command_new(_args: NewCommand) {
-    assert_nota_folder();
-    //if let Some(matches_new) = matches.subcommand_matches("new") {
-    //    let new_nota_name = matches_new.value_of("NAME").unwrap();
-    //    nota::command_new(Some(new_nota_name)); 
-    //}
-}
-
-fn process_command_add(args: AddCommand){
-    assert_nota_folder();
-
-    nota::command_add(PathBuf::from(args.input));
-
-    std::process::exit(0);
-}
-
-fn process_command_list(_args: ListCommand){
-    assert_nota_folder();
-
-    nota::command_list(); 
-
-    std::process::exit(0);
-}
-
-fn process_command_update(_args: UpdateCommand){
-    debug!("Update Command");
-    assert_nota_folder();
-
-    nota::command_update(); 
-
-    std::process::exit(0);
-}
-
-fn process_command_export(args: ExportCommand) {
-    debug!("Export command {:?}", args);
-    assert_nota_folder();
-
-    match nota::command_export(args.input, args.outfolder, args.templates) {
-        Ok(_) => std::process::exit(0),
-        Err(_) => std::process::exit(1)
-    }
-}
-
 fn main() {
     let opts: Opts = Opts::parse();
 
@@ -181,37 +107,16 @@ fn main() {
 
     debug!("Logger initialized");
 
-    // nota::demo();
-
-    // nota::init_envs();
-
     let subcommand = match opts.subcmd {
         Some(subcommand) => subcommand,
         None => return
     };
 
     match subcommand {
-        SubCommand::Add(args) => {
-            process_command_add(args);
-        },
-        SubCommand::Export(args) => {
-            process_command_export(args);
-        },
-        SubCommand::Init(args) => {
-            process_command_init(args);
-        },
-        SubCommand::List(args) => {
-            process_command_list(args);
-        },
-        SubCommand::New(args) => {
-            process_command_new(args);
-        },
-        SubCommand::Update(args) => {
-            process_command_update(args);
-        },
         SubCommand::Generate(args) => {
             nota::generate()
-        }
+        },
+        _ => ()
     }
 
 }
