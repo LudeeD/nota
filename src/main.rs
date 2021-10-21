@@ -1,217 +1,26 @@
-extern crate clap;
-use clap::Clap;
-
-#[macro_use] extern crate log;
-extern crate simple_logger;
-
 use std::env;
 use std::path::{PathBuf};
+use clap::{AppSettings, Clap};
+use log::{debug, error, log_enabled, info, Level};
 
-const VERSION: &str = "0.3.0";
-const AUTHOR:  &str = "Luís Sobral Silva <luiscomsnofim@gmail.com>";
+
+mod cmd;
+use cmd::SubCommand;
+
 
 #[derive(Clap)]
-#[clap(version = VERSION, author = AUTHOR)]
+#[clap(version = "0.5.0", author = "Luís Sobral Silva <luiscomsnofim@gmail.com>")]
 struct Opts {
-    /// sets the verbosity of the logger Error(1)-Warn-Info-Debug-Trace(5)
     #[clap(short, long, parse(from_occurrences))]
     verbose: i32,
     #[clap(subcommand)]
-    subcmd: Option<SubCommand>,
-}
-
-#[derive(Clap)]
-enum SubCommand {
-    Init(InitCommand),
-    New(NewCommand),
-    Add(AddCommand),
-    List(ListCommand),
-    Update(UpdateCommand),
-    Export(ExportCommand),
-    Generate(GenerateCommand)
-}
-
-#[derive(Clap)]
-#[clap(version = VERSION, author = AUTHOR)]
-struct InitCommand{
-    /// The folder where you want to initialize NOTA
-    /// (defaults to create in the current folder)
-    #[clap(long)]
-    folder: Option<String>
-}
-
-#[derive(Clap)]
-#[clap(version = VERSION, author = AUTHOR)]
-struct NewCommand{
-    /// Name to be provided to the new NOTA
-    /// (default: using the current timestamp)
-    #[clap(long)]
-    _name: bool
-}
-
-#[derive(Clap)]
-#[clap(version = VERSION, author = AUTHOR)]
-struct AddCommand{
-    /// Provide folder or file to be added. 
-    /// Folder structure will not be preserved, only files inside will be copied
-    #[clap(short, long)]
-    input: String
-}
-
-/// lists indexed NOTAs
-/// basically, prints the current index state
-#[derive(Clap)]
-#[clap(version = VERSION, author = AUTHOR)]
-struct ListCommand{
-}
-
-/// updates the current NOTA folder
-/// For instance, adding all the missing files to the index
-#[derive(Clap)]
-#[clap(version = VERSION, author = AUTHOR)]
-struct UpdateCommand{
-    /// clears the index and re adds everything
-    #[clap(long)]
-    _hard: bool
-}
-
-/// Book generation commands
-#[derive(Clap, Debug)]
-#[clap(version = VERSION, author = AUTHOR)]
-struct ExportCommand{
-    /// can be a file or a folder (default: indexed notes on current NOTA folder)
-    #[clap(short, long)]
-    input: Option<String>,
-    /// output folder
-    #[clap(short, long)]
-    outfolder: Option<String>,
-    /// folder where we can find templates to use
-    #[clap(short, long)]
-    templates: Option<String>,
-}
-
-#[derive(Clap, Debug)]
-#[clap(version = VERSION, author = AUTHOR)]
-struct GenerateCommand{
-
-}
-
-fn assert_nota_folder() {
-    if ! nota::assert_nota_folder() {
-        info!("Not a NOTA folder, stoping...");
-        std::process::exit(1);
-    }
-}
-
-fn process_command_init(args: InitCommand) {
-
-    let path = match args.folder {
-        Some(folder) => {
-            PathBuf::from(folder)
-        },
-        None => {
-            env::current_dir().expect("No current dir ?")
-        }
-    };
-
-    info!("Initializing NOTA in {:?}", path);
-
-    if ! nota::command_init(path) {
-        info!("It was not possible to initialize NOTA folder, maybe this is a NOTA folder already");
-        std::process::exit(1);
-    }
-
-    std::process::exit(0);
-}
-
-fn process_command_new(_args: NewCommand) {
-    assert_nota_folder();
-    //if let Some(matches_new) = matches.subcommand_matches("new") {
-    //    let new_nota_name = matches_new.value_of("NAME").unwrap();
-    //    nota::command_new(Some(new_nota_name)); 
-    //}
-}
-
-fn process_command_add(args: AddCommand){
-    assert_nota_folder();
-
-    nota::command_add(PathBuf::from(args.input));
-
-    std::process::exit(0);
-}
-
-fn process_command_list(_args: ListCommand){
-    assert_nota_folder();
-
-    nota::command_list(); 
-
-    std::process::exit(0);
-}
-
-fn process_command_update(_args: UpdateCommand){
-    debug!("Update Command");
-    assert_nota_folder();
-
-    nota::command_update(); 
-
-    std::process::exit(0);
-}
-
-fn process_command_export(args: ExportCommand) {
-    debug!("Export command {:?}", args);
-    assert_nota_folder();
-
-    match nota::command_export(args.input, args.outfolder, args.templates) {
-        Ok(_) => std::process::exit(0),
-        Err(_) => std::process::exit(1)
-    }
+    subcommand: SubCommand,
 }
 
 fn main() {
+    env_logger::init();
+
     let opts: Opts = Opts::parse();
 
-    match opts.verbose {
-        1 => simple_logger::init_with_level(log::Level::Error).unwrap(), 
-        2 => simple_logger::init_with_level(log::Level::Warn).unwrap(), 
-        3 => simple_logger::init_with_level(log::Level::Info).unwrap(), 
-        4 => simple_logger::init_with_level(log::Level::Debug).unwrap(), 
-        5 => simple_logger::init_with_level(log::Level::Trace).unwrap(), 
-        _ => simple_logger::init_with_level(log::Level::Info).unwrap()
-    }
-
-    debug!("Logger initialized");
-
-    // nota::demo();
-
-    // nota::init_envs();
-
-    let subcommand = match opts.subcmd {
-        Some(subcommand) => subcommand,
-        None => return
-    };
-
-    match subcommand {
-        SubCommand::Add(args) => {
-            process_command_add(args);
-        },
-        SubCommand::Export(args) => {
-            process_command_export(args);
-        },
-        SubCommand::Init(args) => {
-            process_command_init(args);
-        },
-        SubCommand::List(args) => {
-            process_command_list(args);
-        },
-        SubCommand::New(args) => {
-            process_command_new(args);
-        },
-        SubCommand::Update(args) => {
-            process_command_update(args);
-        },
-        SubCommand::Generate(args) => {
-            nota::generate()
-        }
-    }
-
+    cmd::execute(opts.subcommand);
 }
