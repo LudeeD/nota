@@ -4,21 +4,15 @@
 <meta charset="utf-8" />
 <title>App</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="stylesheet" href="static/style.css">
+<link rel="stylesheet" href="{{parent}}static/style.css">
 </head>
 <body>
 <div class="row">
 <p><b>Last Update:</b> Thu, 03 Dec 2020 23:18:24 +0000</p>
-<a href="index.html" style="float: right;"><p>Back to index 🏠</p></a>
+<a href="{{parent}}index.html" style="float: right;"><p>Back to index 🏠</p></a>
 </div>
 <hr>
-<ul>
-
-{{#each people}}
-    <li><a href="{{this}}">{{this}}</a></li>
-{{/each}}
-
-</ul>
+{{{content}}}
 </body>
 <footer>
 <div class="row">
