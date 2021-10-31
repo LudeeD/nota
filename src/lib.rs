@@ -9,6 +9,11 @@ use std::fs::OpenOptions;
 
 pub mod index;
 
+mod renderer;
+
+use index::NotaIndex;
+use renderer::Renderer;
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct NotaBuilder {
     pub root: PathBuf,
@@ -69,4 +74,10 @@ impl NotaBuilder {
         Ok(())
     }
 
+    pub fn build(&self, index: &NotaIndex) {
+
+        let r = Renderer::new();
+
+        r.render(self, index);
+    }
 }

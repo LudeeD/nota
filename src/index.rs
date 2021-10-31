@@ -14,12 +14,13 @@ use std::iter::FromIterator;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct NotaIndex {
-    nota_store: HashSet<Nota>
+    pub nota_store: HashSet<Nota>
 }
 
 #[derive(Hash, Eq, PartialEq, Serialize, Deserialize, Debug)]
-struct Nota {
+pub struct Nota {
     pub path    : PathBuf,
+    pub rel_path: PathBuf
 }
 
 impl NotaIndex {
@@ -44,13 +45,16 @@ impl NotaIndex {
     }
 
     pub fn update(&mut self, builder: &NotaBuilder) {
+        debug!("Index Update");
         let path = builder.root.clone();
         let path = path.into_os_string().into_string().unwrap();
-        let g = format!("{}*.md", path);
+        /* not really sure why is this / stuff needed in glob */
+        let g = format!("{}/**/*.md", path);
         for path in glob(&g).unwrap().filter_map(Result::ok) {
             let file_name = path.file_name().expect("TODO");
+            let rel_path = path.strip_prefix(&builder.root).expect("TODO").to_owned();
             print!("Found {:?} ", file_name);
-            let new_nota = Nota {path};
+            let new_nota = Nota {path, rel_path};
 
             if self.nota_store.insert(new_nota) {
                 println!("- New");
@@ -60,7 +64,6 @@ impl NotaIndex {
         }
 
         self.nota_store.retain(|nota| nota.path.exists());
-
     }
 
     pub fn save_to_disk(&self, builder: &NotaBuilder) {
