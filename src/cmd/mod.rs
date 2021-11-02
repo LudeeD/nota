@@ -1,11 +1,11 @@
-use clap::Clap;
+use clap::Parser;
 
 mod init;
 mod index;
 mod build;
 mod open;
 
-#[derive(Clap)]
+#[derive(Parser)]
 pub enum SubCommand {
     Init(init::InitCommand),
     Index(index::IndexCommand),

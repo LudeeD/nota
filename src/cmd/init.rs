@@ -1,11 +1,11 @@
-use clap::Clap;
+use clap::Parser;
 use log::{debug, error, info};
 use std::env;
 use std::path::{Path, PathBuf};
 
 use nota::NotaBuilder;
 
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct InitCommand {
     /// The folder where you want to initialize NOTA
     /// (defaults to create in the current folder)

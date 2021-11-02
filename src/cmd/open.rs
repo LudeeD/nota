@@ -1,10 +1,10 @@
-use clap::Clap;
+use clap::Parser;
 use log::{debug, error, info};
 use std::env;
 
 use nota::NotaBuilder;
 
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct OpenCommand { }
 
 pub fn execute(_command: OpenCommand) {
