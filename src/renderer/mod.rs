@@ -6,12 +6,14 @@ use std::fs::{self, File};
 use std::io::prelude::*;
 use std::path::PathBuf;
 
+
 use super::NotaBuilder;
 use super::NotaIndex;
 
 mod theme;
 
 use theme::{ TEMPLATE_NOTA, TEMPLATE_INDEX, CSS };
+
 
 pub struct Renderer<'a> {
     hbs: Handlebars<'a> ,
@@ -29,6 +31,7 @@ impl<'a> Renderer<'a> {
     }
 
     pub fn render(&self, builder: &NotaBuilder, index: &NotaIndex) {
+
 
         // create css folder
         let mut static_folder = builder.output_folder.clone();
@@ -56,7 +59,6 @@ impl<'a> Renderer<'a> {
 
             html::push_html(&mut html_output, parser);
 
-
             let parent = match &nota.rel_path.parent() {
                 Some(par) => {
                     if par.as_os_str() != "" { "../" } 
@@ -79,7 +81,6 @@ impl<'a> Renderer<'a> {
             let mut file = File::create(output).unwrap();
             file.write_all(&render.as_bytes()).expect("TODO");
         }
-
 
         let demo : Vec<PathBuf> = index.nota_store.iter()
             .map(|nota| {

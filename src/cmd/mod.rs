@@ -28,5 +28,8 @@ pub fn execute(cmd: SubCommand) {
         SubCommand::Open(t) => {
             open::execute(t)
         }
+        SubCommand::Build(t) => {
+            build::execute(t)
+        }
     }
 }
