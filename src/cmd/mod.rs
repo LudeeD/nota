@@ -1,14 +1,16 @@
-use clap::Clap;
+use clap::Parser;
 
 mod init;
 mod index;
 mod build;
+mod open;
 
-#[derive(Clap)]
+#[derive(Parser)]
 pub enum SubCommand {
     Init(init::InitCommand),
     Index(index::IndexCommand),
-    Build(build::BuildCommand)
+    Build(build::BuildCommand),
+    Open(open::OpenCommand)
 }
 
 
@@ -19,6 +21,12 @@ pub fn execute(cmd: SubCommand) {
         },
         SubCommand::Index(t) => {
             index::execute(t)
+        },
+        SubCommand::Build(t) => {
+            build::execute(t)
+        },
+        SubCommand::Open(t) => {
+            open::execute(t)
         }
         SubCommand::Build(t) => {
             build::execute(t)

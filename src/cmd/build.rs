@@ -1,4 +1,4 @@
-use clap::Clap;
+use clap::Parser;
 use log::{debug, error, info};
 use std::env;
 use std::path::{Path, PathBuf};
@@ -7,7 +7,7 @@ use nota::NotaBuilder;
 
 use nota::index::NotaIndex;
 
-#[derive(Clap)]
+#[derive(Parser)]
 pub struct BuildCommand { }
 
 pub fn execute(_command: BuildCommand) {

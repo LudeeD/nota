@@ -4,13 +4,16 @@ use serde_json::json;
 use pulldown_cmark::{Parser, Options, html};
 use std::fs::{self, File};
 use std::io::prelude::*;
+use std::path::PathBuf;
+
 
 use super::NotaBuilder;
 use super::NotaIndex;
 
 mod theme;
 
-use theme::{ TEMPLATE, CSS };
+use theme::{ TEMPLATE_NOTA, TEMPLATE_INDEX, CSS };
+
 
 pub struct Renderer<'a> {
     hbs: Handlebars<'a> ,
@@ -21,12 +24,26 @@ impl<'a> Renderer<'a> {
     pub fn new() -> Renderer<'a> {
         let mut hbs = Handlebars::new();
 
-        hbs.register_template_string("demo", String::from_utf8(TEMPLATE.to_vec()).expect("TODO")).expect("TODO");
+        hbs.register_template_string("nota", String::from_utf8(TEMPLATE_NOTA.to_vec()).expect("TODO")).expect("TODO");
+        hbs.register_template_string("index", String::from_utf8(TEMPLATE_INDEX.to_vec()).expect("TODO")).expect("TODO");
 
         Renderer { hbs }
     }
 
     pub fn render(&self, builder: &NotaBuilder, index: &NotaIndex) {
+
+
+        // create css folder
+        let mut static_folder = builder.output_folder.clone();
+        static_folder.push("static");
+        fs::create_dir_all(&static_folder).expect("TODO");
+
+        static_folder.push("style.css");
+
+
+        let mut file = File::create(static_folder).expect("TODO");
+        file.write_all(CSS).expect("TODO");
+
 
         let mut options = Options::empty();
         options.insert(Options::ENABLE_STRIKETHROUGH);
@@ -42,7 +59,15 @@ impl<'a> Renderer<'a> {
 
             html::push_html(&mut html_output, parser);
 
-            let render = self.hbs.render("demo", &json!({"content": html_output})).expect("TODO");
+            let parent = match &nota.rel_path.parent() {
+                Some(par) => {
+                    if par.as_os_str() != "" { "../" } 
+                    else { "" }
+                },
+                _ => ""
+            };
+
+            let render = self.hbs.render("nota", &json!({"content": html_output, "parent": parent})).expect("TODO");
 
             let file_name = &nota.rel_path.file_name().expect("TODO");
             let mut output = builder.output_folder.clone();
@@ -57,7 +82,18 @@ impl<'a> Renderer<'a> {
             file.write_all(&render.as_bytes()).expect("TODO");
         }
 
+        let demo : Vec<PathBuf> = index.nota_store.iter()
+            .map(|nota| {
+                let mut path = nota.rel_path.clone();
+                path.set_extension("html"); 
+                path
+            }).collect();
+        let render = self.hbs.render("index", &json!({"people": demo})).expect("TODO");
+        let mut index_file = builder.output_folder.clone();
+        index_file.push("index.html");
 
+        let mut file = File::create(index_file).unwrap();
+        file.write_all(&render.as_bytes()).expect("TODO");
     }
 
 }
